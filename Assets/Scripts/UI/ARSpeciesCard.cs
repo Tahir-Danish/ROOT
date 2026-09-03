@@ -25,9 +25,12 @@ public class ARSpeciesCard : MonoBehaviour
     public float minScale = 0.00015f;
     public float maxScale = 0.001f;
 
+    private string _currentSpeciesId;
     private bool _isExpanded = false;
     private Camera _mainCamera;
     private ARUXManager _uxManager;
+
+    public static event System.Action<string> OnExploreRequested;
 
     void Awake()
     {
@@ -53,6 +56,8 @@ public class ARSpeciesCard : MonoBehaviour
 
     public void PopulateData(string speciesId)
     {
+        _currentSpeciesId = speciesId;
+
         if (MockSpeciesDatabase.TryGetSpeciesData(speciesId, out SpeciesData data))
         {
             SetText(commonNameText, data.commonName);
@@ -79,8 +84,10 @@ public class ARSpeciesCard : MonoBehaviour
 
     public void ToggleExplore()
     {
-        _isExpanded = !_isExpanded;
-        UpdateView();
+        if (!string.IsNullOrEmpty(_currentSpeciesId))
+        {
+            OnExploreRequested?.Invoke(_currentSpeciesId);
+        }
     }
     
     public void CloseCard()
