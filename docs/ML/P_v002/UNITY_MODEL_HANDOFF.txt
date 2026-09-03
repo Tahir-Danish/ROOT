@@ -1,0 +1,101 @@
+================================================================================
+TEAM CERO — PLANT LOCALIZER & IDENTIFIER: UNITY 6 / SENTIS MODEL HANDOFF
+================================================================================
+
+This document provides the complete model delivery specification for integrating 
+Model 1 (Plant Localizer) and Model 2 (Species Identifier) into Unity Sentis (v6000.5.10f).
+
+--------------------------------------------------------------------------------
+1. MODEL 1 (PLANT LOCALIZER) SPECIFICATIONS
+--------------------------------------------------------------------------------
+- File Name:                model1/plant_localizer_model1.onnx
+- Architecture:           YOLO11n Object Detector (Single Class: "plant")
+- Input Tensor Name:      images
+- Input Tensor Shape:     [1, 3, 640, 640] (NCHW)
+- Input Color & Range:   RGB float32, normalized to [0.0, 1.0] (divide raw uint8 by 255.0)
+- Input Preprocessing:   Resize input camera frame preserving aspect ratio with letterbox 
+                          padding using color (114, 114, 114).
+- Output Tensor Name:     output0
+- Output Tensor Shape:    [1, 5, 8400] (Float32)
+- Output Semantics:       5 channels for 8400 candidate anchor predictions:
+                            Row 0: Center X (px in 640x640 letterboxed frame)
+                            Row 1: Center Y (px in 640x640 letterboxed frame)
+                            Row 2: Width (px in 640x640 letterboxed frame)
+                            Row 3: Height (px in 640x640 letterboxed frame)
+                            Row 4: Plant Confidence Score [0.0, 1.0]
+- Coordinate Space:       Center-based pixel bounds in 640x640 letterbox space.
+- Operating Threshold:    Confidence Threshold = 0.40
+- Unity Post-Processing:  1. Filter 8400 predictions where Row 4 >= 0.40.
+                          2. Run Non-Maximum Suppression (NMS) with IoU Threshold = 0.45.
+                          3. Convert center box (cx, cy, w, h) to original image pixels (x1, y1, x2, y2):
+                             x1 = (cx - w / 2.0 - pad_w) / scale_ratio
+                             y1 = (cy - h / 2.0 - pad_h) / scale_ratio
+                             x2 = (cx + w / 2.0 - pad_w) / scale_ratio
+                             y2 = (cy + h / 2.0 - pad_h) / scale_ratio
+- Decision Rule:          If max plant confidence after NMS < 0.40 -> State: NO_PLANT.
+
+--------------------------------------------------------------------------------
+2. MODEL 2 (SPECIES IDENTIFIER) SPECIFICATIONS
+--------------------------------------------------------------------------------
+- File Name:                model2/plant_classifier_model2.onnx
+- Architecture:           ResNet18 Specialist Classifier (PlantNet MultiHead)
+- Input Tensor Name:      image
+- Input Tensor Shape:     [1, 3, 224, 224] (NCHW)
+- Input Color & Range:   RGB float32, normalized using ImageNet stats:
+                            R = (R_raw/255.0 - 0.485) / 0.229
+                            G = (G_raw/255.0 - 0.456) / 0.224
+                            B = (B_raw/255.0 - 0.406) / 0.225
+- Output Tensor Name:     probabilities
+- Output Tensor Shape:    [1, 10] (Float32)
+- Output Semantics:       Softmax probability distribution over 10 specialist classes.
+- Class Mapping:
+    Index 0: 01_alstonia_scholaris
+    Index 1: 02_justicia_adhatoda
+    Index 2: 03_acalypha_indica
+    Index 3: 04_mimusops_elengi
+    Index 4: 05_caryota_urens
+    Index 5: 07_strobilanthes_kunthiana
+    Index 6: 08_plumeria_alba
+    Index 7: 09_bougainvillea_spectabilis
+    Index 8: 10_gardenia_jasminoides
+    Index 9: unknown_plant
+- Operating Threshold:    Confidence Threshold = 0.50
+- Rejection Rule:         Accept target species if top-1 class_index != 9 AND top-1 probability >= 0.50.
+                          Otherwise return State: UNKNOWN_PLANT.
+
+--------------------------------------------------------------------------------
+3. MODEL 1 -> MODEL 2 CROP CONTRACT
+--------------------------------------------------------------------------------
+- Input Frame:            Original camera frame dimensions (W, H).
+- Bounding Box ROI:       Convert Model 1 detection output to pixel bounds (x1, y1, x2, y2).
+- Boundary Clipping:      x1 = max(0, floor(x1)), y1 = max(0, floor(y1))
+                          x2 = min(W, ceil(x2)),   y2 = min(H, ceil(y2))
+- Crop Padding:           0% (extract exact bounding box crop).
+- Crop Validation:        If crop width < 10 or crop height < 10 -> Return State: INFERENCE_ERROR.
+- Single / Multi-Detection: Select single highest-confidence bounding box for prototype stage.
+
+--------------------------------------------------------------------------------
+4. EXAMPLE INFERENCE & CONTRACT FILE
+--------------------------------------------------------------------------------
+- Contract JSON:          unity_delivery/integration/model_contract.json
+- Reference Implementation: unity_delivery/integration/reference_inference.py
+  (Run `.venv/bin/python unity_delivery/integration/reference_inference.py <image_path>` to verify output)
+
+--------------------------------------------------------------------------------
+5. PROTOTYPE KNOWN LIMITATIONS (DO NOT OVERSELL)
+--------------------------------------------------------------------------------
+- Model 1 Localization: Model 1 has a high false-positive rate on synthetic non-plant imagery (~72%).
+- Model 2 Classifier:   Model 2 currently exhibits false-rejection (~34% target rejection) and 
+                          Mimusops/Gardenia visual confusion.
+- Purpose:              This package enables Unity pipeline integration and Sentis execution 
+                          benchmarking while model retraining continues separately.
+
+--------------------------------------------------------------------------------
+6. ARTIFACT PATH INVENTORY
+--------------------------------------------------------------------------------
+- Model 1 ONNX:          unity_delivery/model1/plant_localizer_model1.onnx
+- Model 2 ONNX:          unity_delivery/model2/plant_classifier_model2.onnx
+- Integration Contract:  unity_delivery/integration/model_contract.json
+- Reference Python Code: unity_delivery/integration/reference_inference.py
+- Handoff Text Document: unity_delivery/UNITY_MODEL_HANDOFF.txt
+================================================================================

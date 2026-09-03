@@ -159,7 +159,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 12800766}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7a522570555c3794eb3681824034fa51, type: 3}
   m_Name: 
@@ -466,6 +466,22 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 72989974}
   m_CullTransparentMesh: 1
+--- !u!114 &123456789
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 426533841}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9f8624b0de814a68adb1d707816d6461, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  localizerModelAsset: {fileID: 5022602860645237092, guid: 68d9d9de94f05a148873acef2736b35a, type: 3}
+  classifierModelAsset: {fileID: 5022602860645237092, guid: cf328bc53d2cae3468efa35f929351aa, type: 3}
+  stateMachine: {fileID: 12800769}
+  inferenceInterval: 0.2
 --- !u!1 &145380978
 GameObject:
   m_ObjectHideFlags: 0
@@ -1664,6 +1680,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 426533843}
+  - component: {fileID: 123456789}
   - component: {fileID: 426533842}
   m_Layer: 0
   m_Name: PlantDetectorExperiment
@@ -1671,7 +1688,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &426533842
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1679,7 +1696,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 426533841}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 22fb40ae6c309be43a97ffcf67d90c65, type: 3}
   m_Name: 
@@ -5470,7 +5487,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1243312390}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 942f82f256e982b40930d9b19f0e7349, type: 3}
   m_Name: 

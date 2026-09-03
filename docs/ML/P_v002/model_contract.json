@@ -1,0 +1,103 @@
+{
+  "pipeline_name": "Team Cero Plant Localization & Species Identification Pipeline",
+  "version": "v3_prototype",
+  "target_runtime": "Unity 6 (Sentis 2.1+ / ONNX)",
+  "model1": {
+    "filename": "model1/plant_localizer_model1.onnx",
+    "architecture": "YOLO11n Object Detector",
+    "input": {
+      "name": "images",
+      "shape": [1, 3, 640, 640],
+      "layout": "NCHW",
+      "color_format": "RGB",
+      "data_type": "float32",
+      "value_range": "[0.0, 1.0]",
+      "letterbox": {
+        "target_width": 640,
+        "target_height": 640,
+        "padding_color": [114, 114, 114],
+        "scale_mode": "preserve_aspect_ratio_with_padding"
+      }
+    },
+    "output": {
+      "name": "output0",
+      "shape": [1, 5, 8400],
+      "layout": "[batch, 5, num_anchors]",
+      "tensor_channels": [
+        "center_x_px_in_640x640",
+        "center_y_px_in_640x640",
+        "width_px_in_640x640",
+        "height_px_in_640x640",
+        "plant_confidence_score"
+      ]
+    },
+    "postprocessing": {
+      "confidence_threshold": 0.40,
+      "iou_threshold": 0.45,
+      "nms_required_in_unity": true,
+      "coordinate_conversion": {
+        "description": "Convert center-based box in 640x640 letterboxed frame to original image pixel coordinates (x1, y1, x2, y2)",
+        "formula_x1": "(center_x - width / 2.0 - pad_w) / scale_ratio",
+        "formula_y1": "(center_y - height / 2.0 - pad_h) / scale_ratio",
+        "formula_x2": "(center_x + width / 2.0 - pad_w) / scale_ratio",
+        "formula_y2": "(center_y + height / 2.0 - pad_h) / scale_ratio"
+      }
+    },
+    "class_mapping": {
+      "0": "plant"
+    },
+    "no_detection_behavior": "If max plant confidence after NMS is < 0.40, return state NO_PLANT and skip Model 2 execution."
+  },
+  "crop_contract": {
+    "input_coordinate_space": "Original image pixel space [0..width, 0..height]",
+    "clipping_rules": {
+      "x1": "max(0, floor(x1))",
+      "y1": "max(0, floor(y1))",
+      "x2": "min(image_width, ceil(x2))",
+      "y2": "min(image_height, ceil(y2))"
+    },
+    "padding": "0% (extract exact bounding box ROI)",
+    "min_valid_crop_size": [10, 10],
+    "multiple_detections_policy": "Select single highest confidence bounding box for prototype stage."
+  },
+  "model2": {
+    "filename": "model2/plant_classifier_model2.onnx",
+    "architecture": "ResNet18 Specialist Classifier (PlantNet MultiHead)",
+    "input": {
+      "name": "image",
+      "shape": [1, 3, 224, 224],
+      "layout": "NCHW",
+      "color_format": "RGB",
+      "data_type": "float32",
+      "preprocessing": {
+        "resize_strategy": "Resize crop to 256x256 then center crop 224x224 (or direct resize to 224x224)",
+        "divide_by": 255.0,
+        "mean_subtraction": [0.485, 0.456, 0.406],
+        "std_division": [0.229, 0.224, 0.225]
+      }
+    },
+    "output": {
+      "name": "probabilities",
+      "shape": [1, 10],
+      "layout": "[batch, 10_specialist_classes]",
+      "semantics": "Softmax probability distribution over 10 specialist species classes"
+    },
+    "class_mapping": {
+      "0": "01_alstonia_scholaris",
+      "1": "02_justicia_adhatoda",
+      "2": "03_acalypha_indica",
+      "3": "04_mimusops_elengi",
+      "4": "05_caryota_urens",
+      "5": "07_strobilanthes_kunthiana",
+      "6": "08_plumeria_alba",
+      "7": "09_bougainvillea_spectabilis",
+      "8": "10_gardenia_jasminoides",
+      "9": "unknown_plant"
+    },
+    "acceptance_rule": {
+      "confidence_threshold": 0.50,
+      "unknown_class_index": 9,
+      "rule": "Accept species if top-1 class_index != 9 AND top-1 probability >= 0.50, else output state UNKNOWN_PLANT."
+    }
+  }
+}
