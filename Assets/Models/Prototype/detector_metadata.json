@@ -1,0 +1,43 @@
+{
+  "model_filename": "best.onnx",
+  "model_version": "YOLOv8n",
+  "onnx_opset": 12,
+  "inputs": [
+    {
+      "name": "images",
+      "shape": [1, 3, 640, 640],
+      "datatype": "Float32",
+      "channels": "RGB",
+      "value_range": "[0.0, 1.0]",
+      "preprocessing": {
+        "resize": "letterbox",
+        "aspect_ratio": "preserve",
+        "padding_value": 114,
+        "normalization": "divide by 255.0",
+        "tensor_layout": "NCHW"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "name": "output0",
+      "shape": [1, 5, 8400],
+      "datatype": "Float32",
+      "channels": [
+        "x_center",
+        "y_center",
+        "width",
+        "height",
+        "confidence_class_0"
+      ],
+      "coordinate_convention": "Absolute pixels relative to 640x640 padded input",
+      "normalized": false
+    }
+  ],
+  "postprocessing": {
+    "nms_required": true,
+    "confidence_threshold": 0.25,
+    "iou_threshold": 0.45,
+    "class_0_mapping": "plant"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "model_version": "v001_prototype",
+  "model_type": "resnet18",
+  "status": "temporary_prototype",
+  "warning": "This is the original PlantNet-300K 1081-class model. It is NOT the trained 10-class VIT specialist. Unity should use this temporarily to unblock UI/pipeline integration.",
+  "input": {
+    "name": "images",
+    "shape": [1, 3, 224, 224],
+    "datatype": "float32",
+    "color_space": "RGB",
+    "preprocessing": {
+      "normalization": {
+        "mean": [0.485, 0.456, 0.406],
+        "std": [0.229, 0.224, 0.225]
+      },
+      "notes": "Crop from detector bbox, resize to 256, center crop to 224 (or directly resize to 224x224), convert to float32 [0-1] range, then normalize with above mean/std."
+    }
+  },
+  "output": {
+    "name": "logits_1081",
+    "shape": [1, 1081],
+    "datatype": "float32",
+    "class_count": 1081,
+    "label_mapping_file": "plantnet300K_species_id_2_name.json",
+    "notes": "Outputs raw logits. Apply Softmax in C# to get probabilities."
+  },
+  "opset": 18
+}

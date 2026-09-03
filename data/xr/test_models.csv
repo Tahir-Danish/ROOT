@@ -1,0 +1,4 @@
+model_id,prefab_name,purpose,status,notes
+XR01,MH_Sam_full,playground model,working,Custom prefab successfully spawned via ObjectSpawner
+XR02,Pringles_Cans,playground model,working,Custom prefab successfully spawned via ObjectSpawner
+XR03,Rob_Walk,playground model,working,Custom prefab successfully spawned via ObjectSpawner

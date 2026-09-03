@@ -1,0 +1,66 @@
+﻿# ==============================
+# Team Cero — Unity Git Ignore
+# Unity 6 / AR Foundation / Sentis
+# ==============================
+
+# --- Unity generated folders ---
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Mm]emory[Cc]aptures/
+[Rr]ecording[Ss]/
+
+# --- Team Cero generated / temporary ---
+.utmp/
+Apks/
+
+# --- IDE / generated project files ---
+.vs/
+.vscode/
+*.csproj
+*.sln
+*.slnx
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+
+# --- Unity generated metadata/cache ---
+sysinfo.txt
+*.pidb.meta
+
+# --- OS files ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Build / packaging leftovers ---
+*.apk
+*.aab
+*.app
+*.ipa
+
+# --- Gradle / Android generated files ---
+.gradle/
+gradleOut/
+GeneratedLocalRepo/
+
+# --- Crash / profiling output ---
+*.stacktrace
+MemoryCaptures/
+Recordings/
+
+# --- Keep Team Cero source/context ---
+# Assets/
+# Packages/
+# ProjectSettings/
+# data/
+# docs/
+# templates/
+# .agents/
+# .vsconfig

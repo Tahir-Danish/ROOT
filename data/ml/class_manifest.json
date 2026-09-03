@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0",
+  "classes": [
+    {"species_id": "SP01", "label": "TBD"},
+    {"species_id": "SP02", "label": "TBD"},
+    {"species_id": "SP03", "label": "TBD"},
+    {"species_id": "SP04", "label": "TBD"},
+    {"species_id": "SP05", "label": "TBD"},
+    {"species_id": "SP06", "label": "TBD"},
+    {"species_id": "SP07", "label": "TBD"}
+  ]
+}
