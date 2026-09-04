@@ -50,10 +50,8 @@ public class AutoARCardTrigger : MonoBehaviour
         {
             TriggerSpatialAcquisition(result, state);
         }
-        else if (state == PerceptionState.NO_TARGET)
-        {
-            uxManager.DismissActiveCard();
-        }
+        // Invariant: Established AR anchors/cards are persistent for the session.
+        // Moving the camera away or entering NO_TARGET MUST NOT dismiss or destroy existing cards.
     }
 
     private void OnDetectionUpdated(DetectionResult result)
@@ -62,8 +60,9 @@ public class AutoARCardTrigger : MonoBehaviour
 
         PerceptionState state = stateMachine.currentState;
         // While in CONFIRMED or UNKNOWN_TARGET state:
-        // - If not yet anchored, this retries spatial acquisition.
-        // - If already anchored, ARUXManager updates card content/species only and ignores position.
+        // - Raycast checks spatial deduplication against existing anchors.
+        // - If within threshold, content is updated without moving world position.
+        // - If new distinct target, genuine ARAnchor and card are created.
         if ((state == PerceptionState.CONFIRMED || state == PerceptionState.UNKNOWN_TARGET) && result.hasBoundingBox)
         {
             TriggerSpatialAcquisition(result, state);
@@ -78,7 +77,7 @@ public class AutoARCardTrigger : MonoBehaviour
         Vector2 bottomCenter = new Vector2(result.boundingBox.center.x, result.boundingBox.yMin);
 
         // Sparse diagnostics at decision boundary (avoid per-frame log spam):
-        if (uxManager != null && !uxManager.IsAnchored)
+        if (uxManager != null)
         {
             if (state != _lastTriggerState || (Time.time - _lastTriggerTime > 1.0f))
             {

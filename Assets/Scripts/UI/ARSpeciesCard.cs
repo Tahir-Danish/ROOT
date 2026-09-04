@@ -204,7 +204,7 @@ public class ARSpeciesCard : MonoBehaviour
     {
         if (_uxManager != null)
         {
-            _uxManager.DismissActiveCard();
+            _uxManager.DismissCard(this);
         }
         else
         {
