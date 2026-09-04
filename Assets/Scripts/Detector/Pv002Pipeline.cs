@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.XR.ARFoundation;
 using UnityEngine.XR.ARSubsystems;
 using Unity.InferenceEngine;
+using UnityEngine.Events;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -17,6 +18,11 @@ public class Pv002Pipeline : MonoBehaviour
     [Header("Perception")]
     public PerceptionStateMachine stateMachine;
 
+    [System.Serializable]
+    public class DetectionUpdateEvent : UnityEvent<DetectionResult> { }
+
+    public DetectionUpdateEvent onDetectionUpdated = new DetectionUpdateEvent();
+
     [Header("Inference Rate")]
     public float inferenceInterval = 0.2f;
 
@@ -27,6 +33,7 @@ public class Pv002Pipeline : MonoBehaviour
     private Model _model2;
     
     private ARCameraManager _cameraManager;
+    private Matrix4x4 _displayMatrix = Matrix4x4.identity;
     private Texture2D _cameraTexture;
     
     private bool _isRunning;
@@ -93,8 +100,7 @@ public class Pv002Pipeline : MonoBehaviour
 
     void OnDestroy()
     {
-        if (_cameraManager != null)
-            _cameraManager.frameReceived -= OnCameraFrameReceived;
+        if (_cameraManager != null) _cameraManager.frameReceived -= OnCameraFrameReceived;
 
         _worker1?.Dispose();
         _worker2?.Dispose();
@@ -103,6 +109,11 @@ public class Pv002Pipeline : MonoBehaviour
 
     private void OnCameraFrameReceived(ARCameraFrameEventArgs args)
     {
+        if (args.displayMatrix.HasValue)
+        {
+            _displayMatrix = args.displayMatrix.Value;
+        }
+
         if (!_isRunning || _inferenceInProgress) return;
         if (Time.time - _lastInferenceTime < inferenceInterval) return;
 
@@ -192,7 +203,7 @@ public class Pv002Pipeline : MonoBehaviour
             timeM2 = swStage.ElapsedMilliseconds;
 
             // --- 7. Model 2 Postprocess & Acceptance ---
-            ProcessModel2Output(outputData2);
+            ProcessModel2Output(outputData2, bestBox.Value);
             swTotal.Stop();
             
             LogTimings(timeM1, timeNMS, timeCrop, timeM2, swTotal.ElapsedMilliseconds);
@@ -201,9 +212,9 @@ public class Pv002Pipeline : MonoBehaviour
         {
             // Ensure all tensors are disposed to prevent memory leaks
             inputTensor1?.Dispose();
-            outputTensor1?.Dispose();
+            // outputTensor1 is owned by the worker (PeekOutput), do not dispose
             inputTensor2?.Dispose();
-            outputTensor2?.Dispose();
+            // outputTensor2 is owned by the worker (PeekOutput), do not dispose
             
             _processedCount++;
             _lastInferenceTime = Time.time;
@@ -302,10 +313,13 @@ public class Pv002Pipeline : MonoBehaviour
         float padH = (MODEL1_SIZE - origH * scale) / 2f;
 
         var rawDetections = new List<BoundingBox>();
+        float maxObservedConf = 0f;
 
         for (int i = 0; i < numPredictions; i++)
         {
             float conf = output[4 * numPredictions + i];
+            if (conf > maxObservedConf) maxObservedConf = conf;
+
             if (conf < confidenceThreshold) continue;
 
             float cx = output[0 * numPredictions + i];
@@ -327,6 +341,8 @@ public class Pv002Pipeline : MonoBehaviour
                 confidence = conf
             });
         }
+
+        Debug.Log($"[Pv002] M1 Diagnostic: {rawDetections.Count} boxes > threshold, Max Conf: {maxObservedConf:F4}");
 
         if (rawDetections.Count == 0) return null;
 
@@ -413,7 +429,7 @@ public class Pv002Pipeline : MonoBehaviour
         return tensor;
     }
 
-    private void ProcessModel2Output(float[] output)
+    private void ProcessModel2Output(float[] output, BoundingBox box)
     {
         float maxProb = -1f;
         int maxIndex = -1;
@@ -427,31 +443,124 @@ public class Pv002Pipeline : MonoBehaviour
             }
         }
 
+        Debug.Log($"[Pv002] M2 Prediction: {CLASSES[maxIndex]} ({maxProb:F2})");
+
         if (maxIndex != 9 && maxProb >= 0.50f)
         {
-            SubmitDetection(CLASSES[maxIndex], maxProb, "identified");
+            SubmitDetection(CLASSES[maxIndex], maxProb, "identified", box);
         }
         else
         {
-            SubmitDetection("unknown_plant", maxProb, "unrecognized");
+            SubmitDetection("unknown_plant", maxProb, "unrecognized", box);
         }
     }
 
     private void SubmitNoPlant()
     {
-        SubmitDetection("", 0f, "unrecognized");
+        SubmitDetection("", 0f, "unrecognized", null);
     }
 
-    private void SubmitDetection(string species, float confidence, string status)
+    private Rect MapBoxToScreen(BoundingBox box, int texW, int texH)
     {
+        // Coordinate Space: 
+        // Input: BoundingBox (pixels in camera texture, x: 0..texW, y: 0..texH)
+        // Output: Rect (pixels in Unity Screen space, bottom-left origin: 0..Screen.width, 0..Screen.height)
+        
+        // AR Foundation / ARCore displayMatrix is ROW-MAJOR where:
+        // u_cam = sx * m00 + sy * m10 + m20
+        // v_cam = sx * m01 + sy * m11 + m21
+        float a = _displayMatrix.m00;
+        float b = _displayMatrix.m10;
+        float tx0 = _displayMatrix.m20;
+
+        float c = _displayMatrix.m01;
+        float d = _displayMatrix.m11;
+        float ty0 = _displayMatrix.m21;
+
+        float det = a * d - b * c;
+        bool hasValidDisplayMatrix = Mathf.Abs(det) > 1e-6f;
+
+        Vector2 MapPoint(float px, float py)
+        {
+            if (hasValidDisplayMatrix)
+            {
+                // Exact 2D affine inversion:
+                // [u - tx0]   [a  b] [sx]
+                // [v - ty0] = [c  d] [sy]
+                float u = px / (float)texW;
+                float v = py / (float)texH;
+
+                float du = u - tx0;
+                float dv = v - ty0;
+
+                float sx = (d * du - b * dv) / det;
+                float sy = (-c * du + a * dv) / det;
+
+                return new Vector2(sx * Screen.width, sy * Screen.height);
+            }
+            else
+            {
+                // Authoritative Fallback: Portrait AspectFill (scale-to-fill) mapping
+                float screenW = Screen.width;
+                float screenH = Screen.height;
+
+                // Sensor 640x480 in 90-degree portrait orientation:
+                float camPortraitW = (float)texH; // 480
+                float camPortraitH = (float)texW; // 640
+
+                float scale = Mathf.Max(screenW / camPortraitW, screenH / camPortraitH);
+                float offX = (screenW - camPortraitW * scale) / 2f;
+                float offY = (screenH - camPortraitH * scale) / 2f;
+
+                float portX = py;
+                float portY = px;
+
+                return new Vector2(offX + portX * scale, offY + portY * scale);
+            }
+        }
+
+        Vector2 p1 = MapPoint(box.x1, box.y1);
+        Vector2 p2 = MapPoint(box.x2, box.y1);
+        Vector2 p3 = MapPoint(box.x1, box.y2);
+        Vector2 p4 = MapPoint(box.x2, box.y2);
+
+        float minX = Mathf.Min(p1.x, p2.x, p3.x, p4.x);
+        float maxX = Mathf.Max(p1.x, p2.x, p3.x, p4.x);
+        float minY = Mathf.Min(p1.y, p2.y, p3.y, p4.y);
+        float maxY = Mathf.Max(p1.y, p2.y, p3.y, p4.y);
+
+        return new Rect(minX, minY, maxX - minX, maxY - minY);
+    }
+
+    private void SubmitDetection(string species, float confidence, string status, BoundingBox? box)
+    {
+        Rect screenRect = default;
+        if (box.HasValue && _cameraTexture != null)
+        {
+            screenRect = MapBoxToScreen(box.Value, _cameraTexture.width, _cameraTexture.height);
+            Debug.Log($"[Pv002] BoxMapping | DetectorBox: ({box.Value.x1:F1}, {box.Value.y1:F1}, {box.Value.x2:F1}, {box.Value.y2:F1}) | ScreenRect: ({screenRect.x:F1}, {screenRect.y:F1}, {screenRect.width:F1}, {screenRect.height:F1}) | Screen: {Screen.width}x{Screen.height}");
+        }
+
+        var result = new DetectionResult
+        {
+            species_id = species,
+            confidence = confidence,
+            status = status,
+            hasBoundingBox = box.HasValue,
+            boundingBox = screenRect
+        };
+
+        Debug.Log($"[UIBRIDGE] PipelineDetection: {species}, conf: {confidence:F2}, status: {status}, box: {box.HasValue}");
+
+        if (onDetectionUpdated == null)
+        {
+            onDetectionUpdated = new DetectionUpdateEvent();
+        }
+        onDetectionUpdated.Invoke(result);
+
         if (stateMachine != null)
         {
-            stateMachine.SubmitDetection(new DetectionResult
-            {
-                species_id = species,
-                confidence = confidence,
-                status = status
-            });
+            stateMachine.SubmitDetection(result);
         }
     }
 }

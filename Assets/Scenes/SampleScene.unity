@@ -131,6 +131,8 @@ GameObject:
   - component: {fileID: 12800769}
   - component: {fileID: 12800768}
   - component: {fileID: 12800767}
+  - component: {fileID: 12801766}
+  - component: {fileID: 12801767}
   m_Layer: 0
   m_Name: PerceptionExperiment
   m_TagString: Untagged
@@ -478,8 +480,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9f8624b0de814a68adb1d707816d6461, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  localizerModelAsset: {fileID: 5022602860645237092, guid: 68d9d9de94f05a148873acef2736b35a, type: 3}
-  classifierModelAsset: {fileID: 5022602860645237092, guid: cf328bc53d2cae3468efa35f929351aa, type: 3}
+  localizerModelAsset: {fileID: 5022602860645237092, guid: c52756386c5d41538ee111e2b972e74c, type: 3}
+  classifierModelAsset: {fileID: 5022602860645237092, guid: f7fa0b954a0610e4b9dc47be0a19ae8c, type: 3}
   stateMachine: {fileID: 12800769}
   inferenceInterval: 0.2
 --- !u!1 &145380978
@@ -9148,3 +9150,31 @@ SceneRoots:
   - {fileID: 12800770}
   - {fileID: 426533843}
   - {fileID: 1243312393}
+
+--- !u!114 &12801766
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 12800766}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2a04f870b053c8e439c43b9671530f59, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  stateMachine: {fileID: 12800769}
+--- !u!114 &12801767
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 12800766}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 72c755d163150d14a988fffd4cf83af7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  stateMachine: {fileID: 12800769}
+  uxManager: {fileID: 1243312391}

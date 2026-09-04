@@ -39,45 +39,49 @@ public class ARUXManager : MonoBehaviour
     {
         if (raycastManager == null) return;
 
-        // Perform raycast against AR planes
+        Debug.Log($"[UIBRIDGE] ARUXTriggered: screen point {screenPoint}");
+
+        Vector3 targetPosition;
         if (raycastManager.Raycast(screenPoint, _raycastHits, TrackableType.PlaneWithinPolygon))
         {
-            // Get the closest hit
             Pose hitPose = _raycastHits[0].pose;
-            Vector3 targetPosition = hitPose.position + (Vector3.up * verticalOffset);
-
-            if (_currentActiveCard == null)
+            targetPosition = hitPose.position + (Vector3.up * verticalOffset);
+        }
+        else
+        {
+            Debug.Log("[ARUXManager] Raycast missed. Using camera-space fallback.");
+            if (Camera.main != null)
             {
-                // Instantiate a new card
-                _currentActiveCard = Instantiate(arSpeciesCardPrefab, targetPosition, Quaternion.identity);
-                _currentCardComponent = _currentActiveCard.GetComponentInChildren<ARSpeciesCard>();
-                
-                if (_currentCardComponent != null)
-                {
-                    _currentCardComponent.Initialize(this);
-                }
+                Ray ray = Camera.main.ScreenPointToRay(screenPoint);
+                targetPosition = ray.GetPoint(1.0f);
             }
-            else
-            {
-                // Move/Update the existing card
-                _currentActiveCard.SetActive(true);
-                _currentActiveCard.transform.position = targetPosition;
-                // Note: Rotation is actively managed by Billboard.cs
-            }
+            else return;
+        }
 
-            // Populate the card with the detection info
+        if (_currentActiveCard == null)
+        {
+            _currentActiveCard = Instantiate(arSpeciesCardPrefab, targetPosition, Quaternion.identity);
+            Debug.Log("[UIBRIDGE] CardInstantiated");
+            _currentCardComponent = _currentActiveCard.GetComponentInChildren<ARSpeciesCard>();
+            
             if (_currentCardComponent != null)
             {
-                _currentCardComponent.PopulateData(result.species_id);
-            }
-            else
-            {
-                Debug.LogWarning("[ARUXManager] Spawned prefab is missing the ARSpeciesCard component.");
+                _currentCardComponent.Initialize(this);
             }
         }
         else
         {
-            Debug.Log("[ARUXManager] Raycast missed. No AR plane detected at that screen position.");
+            _currentActiveCard.SetActive(true);
+            _currentActiveCard.transform.position = targetPosition;
+        }
+
+        if (_currentCardComponent != null)
+        {
+            _currentCardComponent.PopulateData(result.species_id);
+        }
+        else
+        {
+            Debug.LogWarning("[ARUXManager] Spawned prefab is missing the ARSpeciesCard component.");
         }
     }
 

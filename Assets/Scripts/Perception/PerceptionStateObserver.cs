@@ -27,9 +27,9 @@ public class PerceptionStateObserver : MonoBehaviour
         }
     }
 
-    private void OnStateChanged(PerceptionState state, string speciesId)
+    private void OnStateChanged(PerceptionState state, DetectionResult result)
     {
-        UpdateUI(state, speciesId);
+        UpdateUI(state, result.species_id);
     }
 
     private void UpdateUI(PerceptionState state, string speciesId)

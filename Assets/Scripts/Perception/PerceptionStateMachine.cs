@@ -5,7 +5,8 @@ public enum PerceptionState
 {
     NO_TARGET,
     CANDIDATE,
-    CONFIRMED
+    CONFIRMED,
+    UNKNOWN_TARGET
 }
 
 [System.Serializable]
@@ -14,6 +15,8 @@ public struct DetectionResult
     public string species_id;
     public float confidence;
     public string status; // "identified", "uncertain", "unrecognized"
+    public Rect boundingBox;
+    public bool hasBoundingBox;
 }
 
 public class PerceptionStateMachine : MonoBehaviour
@@ -32,7 +35,7 @@ public class PerceptionStateMachine : MonoBehaviour
     public string currentSpeciesId = "";
 
     [System.Serializable]
-    public class StateChangeEvent : UnityEvent<PerceptionState, string> { }
+    public class StateChangeEvent : UnityEvent<PerceptionState, DetectionResult> { }
     
     public StateChangeEvent onStateChanged;
 
@@ -48,10 +51,11 @@ public class PerceptionStateMachine : MonoBehaviour
     void Update()
     {
         bool isValidTarget = _latestResult.confidence >= confidenceThreshold && _latestResult.status == "identified";
+        bool isUnknownTarget = _latestResult.hasBoundingBox && !isValidTarget;
 
         _timeInCurrentState += Time.deltaTime;
 
-        if (isValidTarget)
+        if (isValidTarget || isUnknownTarget)
         {
             _timeSinceLastValidDetection = 0f;
         }
@@ -65,15 +69,18 @@ public class PerceptionStateMachine : MonoBehaviour
             case PerceptionState.NO_TARGET:
                 if (isValidTarget)
                 {
-                    TransitionTo(PerceptionState.CANDIDATE, _latestResult.species_id);
+                    TransitionTo(PerceptionState.CANDIDATE, _latestResult);
+                }
+                else if (isUnknownTarget)
+                {
+                    TransitionTo(PerceptionState.UNKNOWN_TARGET, _latestResult);
                 }
                 break;
 
             case PerceptionState.CANDIDATE:
                 if (_timeSinceLastValidDetection > lostToleranceDuration)
                 {
-                    // Target lost before confirmation
-                    TransitionTo(PerceptionState.NO_TARGET, "");
+                    TransitionTo(PerceptionState.NO_TARGET, default);
                 }
                 else if (isValidTarget)
                 {
@@ -81,44 +88,61 @@ public class PerceptionStateMachine : MonoBehaviour
                     {
                         if (_timeInCurrentState >= candidateDurationRequired)
                         {
-                            TransitionTo(PerceptionState.CONFIRMED, currentSpeciesId);
+                            TransitionTo(PerceptionState.CONFIRMED, _latestResult);
                         }
                     }
                     else
                     {
-                        // Target changed abruptly during candidate phase
-                        TransitionTo(PerceptionState.CANDIDATE, _latestResult.species_id);
+                        TransitionTo(PerceptionState.CANDIDATE, _latestResult);
                     }
+                }
+                else if (isUnknownTarget)
+                {
+                    TransitionTo(PerceptionState.UNKNOWN_TARGET, _latestResult);
                 }
                 break;
 
             case PerceptionState.CONFIRMED:
                 if (_timeSinceLastValidDetection > lostToleranceDuration)
                 {
-                    TransitionTo(PerceptionState.NO_TARGET, "");
+                    TransitionTo(PerceptionState.NO_TARGET, default);
                 }
                 else if (isValidTarget && _latestResult.species_id != currentSpeciesId)
                 {
-                    // New target appeared while holding confirmed state of another.
-                    TransitionTo(PerceptionState.CANDIDATE, _latestResult.species_id);
+                    TransitionTo(PerceptionState.CANDIDATE, _latestResult);
+                }
+                else if (isUnknownTarget)
+                {
+                    TransitionTo(PerceptionState.UNKNOWN_TARGET, _latestResult);
+                }
+                break;
+
+            case PerceptionState.UNKNOWN_TARGET:
+                if (_timeSinceLastValidDetection > lostToleranceDuration)
+                {
+                    TransitionTo(PerceptionState.NO_TARGET, default);
+                }
+                else if (isValidTarget)
+                {
+                    TransitionTo(PerceptionState.CANDIDATE, _latestResult);
                 }
                 break;
         }
         
         // Mark current result as old by dropping its validity 
-        // Real systems will push new ones. If none is pushed, timeSinceLastValidDetection increases.
         _latestResult.status = "unrecognized";
+        _latestResult.hasBoundingBox = false;
     }
 
-    private void TransitionTo(PerceptionState newState, string speciesId)
+    private void TransitionTo(PerceptionState newState, DetectionResult result)
     {
-        if (currentState == newState && currentSpeciesId == speciesId) return;
+        if (currentState == newState && currentSpeciesId == result.species_id) return;
 
-        Debug.Log($"[PerceptionStateMachine] {currentState} -> {newState} ({speciesId})");
+        Debug.Log($"[PerceptionStateMachine] {currentState} -> {newState} ({result.species_id})");
         currentState = newState;
-        currentSpeciesId = speciesId;
+        currentSpeciesId = result.species_id ?? "";
         _timeInCurrentState = 0f;
         
-        onStateChanged?.Invoke(currentState, currentSpeciesId);
+        onStateChanged?.Invoke(currentState, result);
     }
 }
