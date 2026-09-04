@@ -101,12 +101,18 @@ public class ARUXManager : MonoBehaviour
             return;
         }
 
-        // 2. Spatial Acquisition: Attempt AR Raycast against detected planes
+        // 2. Spatial Acquisition: Attempt AR Raycast against detected planes (polygon + bounds)
         _currentSpatialState = SpatialState.ACQUIRING_SPATIAL;
 
-        if (raycastManager.Raycast(screenPoint, _raycastHits, TrackableType.PlaneWithinPolygon))
+        TrackableType raycastMask = TrackableType.PlaneWithinPolygon | TrackableType.PlaneWithinBounds;
+
+        if (raycastManager.Raycast(screenPoint, _raycastHits, raycastMask))
         {
             Pose hitPose = _raycastHits[0].pose;
+            float hitDistance = _raycastHits[0].distance;
+            TrackableId hitTrackableId = _raycastHits[0].trackableId;
+            Debug.Log($"[ARUXManager] Raycast HIT: mask={raycastMask}, count={_raycastHits.Count}, trackable={hitTrackableId}, pose={hitPose}, distance={hitDistance:F2}m");
+
             _currentARAnchor = null;
 
             // Attempt to bind genuine native ARAnchor via ARAnchorManager
@@ -181,7 +187,7 @@ public class ARUXManager : MonoBehaviour
             // Honest No-Hit Policy: Do NOT use camera-relative 1.0m fallback.
             // Remain in ACQUIRING_SPATIAL state and await next valid surface hit.
             _currentSpatialState = SpatialState.ACQUIRING_SPATIAL;
-            Debug.Log($"[ARUXManager] Spatial acquisition: LOCATING SURFACE... (No valid plane hit at screen point {screenPoint})");
+            Debug.Log($"[ARUXManager] Raycast NO HIT: mask={raycastMask}, count=0, screen={screenPoint} | Spatial acquisition: LOCATING SURFACE...");
         }
     }
 
