@@ -108,11 +108,8 @@ public class DetectionVisualizer : MonoBehaviour
             Debug.Log("[UIBRIDGE] PipelineSubscriptionReady");
         }
 
-        // 7. Temporary Experimental AR Tracking Card Mode (Cleanly removable)
-        if (GetComponent<ExperimentalARTrackingCard>() == null)
-        {
-            gameObject.AddComponent<ExperimentalARTrackingCard>();
-        }
+        // 7. Experimental AR Tracking Card injection removed for Spatial AR v0.2.
+        // DetectionVisualizer is strictly diagnostic/HUD visualization.
     }
 
     private Font ResolveFont()
