@@ -19,7 +19,7 @@ public class SpatialTether : MonoBehaviour
     public Transform tetherCylinder;
 
     [Tooltip("Physical diameter of the 3D tether rod in meters.")]
-    public float rodDiameter = 0.005f; // 5mm solid composite/metallic rod
+    public float rodDiameter = 0.0028f; // 2.8mm slender optical/composite filament
 
     [Tooltip("Optional 3D marker at the surface anchor point (Point A).")]
     public Transform anchorMarker;

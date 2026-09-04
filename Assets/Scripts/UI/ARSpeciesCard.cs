@@ -127,7 +127,7 @@ public class ARSpeciesCard : MonoBehaviour
         if (isKnown && speciesId != "unknown_plant")
         {
             // Confirmed identification
-            SetStatusBadge("IDENTIFIED", ColorIdentifiedGreen, ColorIdentifiedBadgeBg);
+            SetStatusBadge("● IDENTIFIED", ColorIdentifiedGreen, ColorIdentifiedBadgeBg);
 
             SetText(commonNameText, string.IsNullOrEmpty(data.commonName) || data.commonName == "Data Unavailable" ? FormatSpeciesTitle(speciesId) : data.commonName);
             SetText(scientificNameText, !string.IsNullOrEmpty(data.scientificName) ? data.scientificName : "Plantae sp.");
@@ -143,7 +143,7 @@ public class ARSpeciesCard : MonoBehaviour
         else if (isKnown && speciesId == "unknown_plant")
         {
             // Unconfirmed / Unknown target
-            SetStatusBadge("UNCONFIRMED TARGET", ColorUnknownAmber, ColorUnknownBadgeBg);
+            SetStatusBadge("● UNCONFIRMED TARGET", ColorUnknownAmber, ColorUnknownBadgeBg);
 
             SetText(commonNameText, "Unknown Species");
             SetText(scientificNameText, "Data Unavailable");
@@ -158,7 +158,7 @@ public class ARSpeciesCard : MonoBehaviour
         else
         {
             // Unknown fallback
-            SetStatusBadge("UNCONFIRMED TARGET", ColorUnknownAmber, ColorUnknownBadgeBg);
+            SetStatusBadge("● UNCONFIRMED TARGET", ColorUnknownAmber, ColorUnknownBadgeBg);
 
             SetText(commonNameText, "Unknown Species");
             SetText(scientificNameText, "Data Unavailable");
