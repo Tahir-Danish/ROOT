@@ -17,6 +17,11 @@ public class Billboard : MonoBehaviour
 
     void LateUpdate()
     {
+        if (_mainCamera == null)
+        {
+            _mainCamera = Camera.main;
+        }
+
         if (_mainCamera != null)
         {
             // Calculate direction to camera

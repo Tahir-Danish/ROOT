@@ -2,6 +2,17 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEditor;
 
+/// <summary>
+/// Deterministic prefab generator for the Phase 3 production ARSpeciesCard.
+/// Adheres strictly to TEAM_CERO_SPATIAL_AR_SPEC_v0.2.md.
+/// Constructs:
+/// - Meter-scale root with ARSpeciesCard & SpatialTether
+/// - AnchorMarker (Point A) on the physical surface
+/// - Genuine 3D Tether Cylinder (Section 10)
+/// - CardAnchor (Point B) at presentation elevation
+/// - Billboarding PlaqueVisual with high-contrast UI (620x380)
+/// - All 6 official contextual fields simultaneously visible
+/// </summary>
 public class CreateARSpeciesCardPrefab
 {
     [MenuItem("Tools/Rebuild AR Species Card Prefab")]
@@ -9,183 +20,278 @@ public class CreateARSpeciesCardPrefab
     {
         string path = "Assets/Prefabs/UI/ARSpeciesCard.prefab";
 
+        Font uiFont = ResolveFont();
+
+        // 1. Root Presentation Object (World meter scale)
         GameObject root = new GameObject("ARSpeciesCard");
-        var billboard = root.AddComponent<Billboard>();
+        root.transform.position = Vector3.zero;
+        root.transform.rotation = Quaternion.identity;
+        root.transform.localScale = Vector3.one;
+
         var speciesCard = root.AddComponent<ARSpeciesCard>();
+        var spatialTether = root.AddComponent<SpatialTether>();
 
-        // --- MUSEUM PLAQUE STEM (Instead of plain line) ---
-        // A polished tapered cylinder to visually ground the plaque
-        GameObject stem = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-        stem.name = "PlaqueStem";
-        stem.transform.SetParent(root.transform, false);
-        // Base is at -0.05y, top is at 0. So center is -0.025y.
-        stem.transform.localPosition = new Vector3(0, -0.025f, 0);
-        // Scale: cylinder default is 2 units tall, 1 unit wide.
-        // We want it 0.05m tall, so y scale = 0.025. Width = 0.002.
-        stem.transform.localScale = new Vector3(0.004f, 0.025f, 0.004f);
-        
-        Material stemMat = new Material(Shader.Find("Standard"));
-        stemMat.color = new Color(0.8f, 0.8f, 0.8f, 1f);
-        stemMat.SetFloat("_Metallic", 0.5f);
-        stemMat.SetFloat("_Glossiness", 0.5f);
-        stem.GetComponent<MeshRenderer>().material = stemMat;
-        Object.DestroyImmediate(stem.GetComponent<Collider>());
-        
-        // --- CANVAS SETUP ---
-        var canvas = root.AddComponent<Canvas>();
+        // 2. Point A: Anchor Target Marker (Surface disc)
+        // Root is instantiated at (0, 0.05, 0) relative to anchor, so anchor surface is at (0, -0.05, 0)
+        GameObject anchorMarker = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        anchorMarker.name = "AnchorMarker";
+        anchorMarker.transform.SetParent(root.transform, false);
+        anchorMarker.transform.localPosition = new Vector3(0, -0.05f, 0);
+        anchorMarker.transform.localRotation = Quaternion.identity;
+        anchorMarker.transform.localScale = new Vector3(0.06f, 0.0015f, 0.06f); // 6cm diameter, 3mm thin disc
+        Object.DestroyImmediate(anchorMarker.GetComponent<Collider>());
+
+        Material markerMat = CreateMaterial(new Color(0.06f, 0.73f, 0.51f, 0.95f), 0.2f, 0.8f); // Emerald #10B981
+        anchorMarker.GetComponent<MeshRenderer>().material = markerMat;
+
+        // 3. Point B: Card Anchor (Presentation elevation)
+        // Elevated 15cm above root (so 20cm above the physical surface plane)
+        GameObject cardAnchor = new GameObject("CardAnchor");
+        cardAnchor.transform.SetParent(root.transform, false);
+        cardAnchor.transform.localPosition = new Vector3(0, 0.15f, 0);
+        cardAnchor.transform.localRotation = Quaternion.identity;
+        cardAnchor.transform.localScale = Vector3.one;
+
+        // 4. Genuine 3D Spatial Tether Cylinder (Spec Section 10)
+        GameObject tetherObj = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        tetherObj.name = "SpatialTetherRod";
+        tetherObj.transform.SetParent(root.transform, false);
+        Object.DestroyImmediate(tetherObj.GetComponent<Collider>());
+
+        Material tetherMat = CreateMaterial(new Color(0.20f, 0.25f, 0.30f, 1.0f), 0.7f, 0.6f); // Titanium / graphite
+        tetherObj.GetComponent<MeshRenderer>().material = tetherMat;
+
+        // Configure SpatialTether component
+        spatialTether.anchorPoint = anchorMarker.transform;
+        spatialTether.cardPoint = cardAnchor.transform;
+        spatialTether.tetherCylinder = tetherObj.transform;
+        spatialTether.anchorMarker = anchorMarker.transform;
+        spatialTether.rodDiameter = 0.005f; // 5mm solid rod
+        spatialTether.UpdateTetherGeometry();
+
+        // 5. Plaque Visual (Canvas + Billboard)
+        // Child of CardAnchor, pivot at (0.5, 0.0) pinned directly to Point B
+        GameObject plaqueVisual = new GameObject("PlaqueVisual");
+        plaqueVisual.transform.SetParent(cardAnchor.transform, false);
+        plaqueVisual.transform.localPosition = Vector3.zero;
+        plaqueVisual.transform.localRotation = Quaternion.identity;
+        plaqueVisual.transform.localScale = Vector3.one * 0.00040f; // Initial scale for editor preview
+
+        var billboard = plaqueVisual.AddComponent<Billboard>();
+        billboard.fixedPitch = 25f; // 25 degree tilt back for natural downward viewing
+        billboard.swivelSpeed = 6f;
+
+        var canvas = plaqueVisual.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.WorldSpace;
-        var canvasScaler = root.AddComponent<CanvasScaler>();
+        var canvasScaler = plaqueVisual.AddComponent<CanvasScaler>();
         canvasScaler.dynamicPixelsPerUnit = 10;
-        root.AddComponent<GraphicRaycaster>(); // REQUIRED for UI interaction
-        
-        RectTransform rt = root.GetComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(300, 150);
+        plaqueVisual.AddComponent<GraphicRaycaster>();
 
-        // --- COLLAPSED VIEW ---
-        GameObject collapsed = new GameObject("CollapsedView");
-        collapsed.transform.SetParent(root.transform, false);
-        var collRt = collapsed.AddComponent<RectTransform>();
-        collRt.anchorMin = Vector2.zero; collRt.anchorMax = Vector2.one;
-        collRt.offsetMin = Vector2.zero; collRt.offsetMax = Vector2.zero;
-        
-        var collImage = collapsed.AddComponent<Image>();
-        // Slightly rounded corner aesthetic (using standard sprite if available, otherwise solid)
-        collImage.color = new Color(0.12f, 0.15f, 0.12f, 0.95f); // Dark botanical green
+        RectTransform plaqueRt = plaqueVisual.GetComponent<RectTransform>();
+        plaqueRt.sizeDelta = new Vector2(620, 380);
+        plaqueRt.pivot = new Vector2(0.5f, 0f); // Pivot at bottom-center
 
-        // Content Container to push it forward in Z space for depth
-        GameObject collContent = new GameObject("Content");
-        collContent.transform.SetParent(collapsed.transform, false);
-        var collContentRt = collContent.AddComponent<RectTransform>();
-        collContentRt.anchorMin = Vector2.zero; collContentRt.anchorMax = Vector2.one;
-        collContentRt.offsetMin = Vector2.zero; collContentRt.offsetMax = Vector2.zero;
-        collContentRt.anchoredPosition3D = new Vector3(0, 0, -2f); // 2 units forward
+        // 6. UI Structure
+        // 6.1 Solid Opaque Background Panel
+        GameObject bgObj = new GameObject("BackgroundPanel");
+        bgObj.transform.SetParent(plaqueVisual.transform, false);
+        RectTransform bgRt = bgObj.AddComponent<RectTransform>();
+        bgRt.anchorMin = Vector2.zero; bgRt.anchorMax = Vector2.one;
+        bgRt.offsetMin = Vector2.zero; bgRt.offsetMax = Vector2.zero;
 
-        // Header
-        Text headerLabel = CreateText(collContent, "HeaderLabel", "IDENTIFIED", 10, FontStyle.Bold, TextAnchor.UpperLeft);
-        headerLabel.color = new Color(0.5f, 0.9f, 0.5f);
-        SetRect(headerLabel, 15, -15, 100, 15);
+        Image bgImage = bgObj.AddComponent<Image>();
+        bgImage.color = new Color(0.05f, 0.07f, 0.09f, 1.0f); // Fully opaque obsidian/charcoal #0D1117
 
-        // Common Name
-        Text commonName = CreateText(collContent, "CommonName", "Common Name", 22, FontStyle.Bold, TextAnchor.UpperLeft);
-        SetRect(commonName, 15, -35, 270, 30);
+        Outline bgOutline = bgObj.AddComponent<Outline>();
+        bgOutline.effectColor = new Color(0.06f, 0.73f, 0.51f, 0.85f); // Emerald accent border #10B981
+        bgOutline.effectDistance = new Vector2(2, -2);
 
-        // Scientific Name
-        Text scientificName = CreateText(collContent, "ScientificName", "Scientific Name", 14, FontStyle.Italic, TextAnchor.UpperLeft);
-        scientificName.color = new Color(0.7f, 0.7f, 0.7f);
-        SetRect(scientificName, 15, -65, 270, 20);
+        // 6.2 Header Bar (Y: 320 to 370)
+        GameObject headerObj = new GameObject("HeaderBar");
+        headerObj.transform.SetParent(bgObj.transform, false);
+        RectTransform headerRt = headerObj.AddComponent<RectTransform>();
+        headerRt.anchorMin = new Vector2(0, 1); headerRt.anchorMax = new Vector2(1, 1);
+        headerRt.pivot = new Vector2(0.5f, 1);
+        headerRt.anchoredPosition = new Vector2(0, -10);
+        headerRt.sizeDelta = new Vector2(-40, 45);
 
-        // Family / Region
-        Text familyRegion = CreateText(collContent, "FamilyRegion", "Family", 11, FontStyle.Normal, TextAnchor.UpperLeft);
-        familyRegion.color = new Color(0.6f, 0.6f, 0.6f);
-        SetRect(familyRegion, 15, -95, 270, 15);
-        
-        Text nativeRegion = CreateText(collContent, "NativeRegion", "Region", 11, FontStyle.Normal, TextAnchor.UpperLeft);
-        nativeRegion.color = new Color(0.6f, 0.6f, 0.6f);
-        SetRect(nativeRegion, 15, -110, 270, 15);
+        // Status Badge Capsule (Left)
+        GameObject badgeObj = new GameObject("StatusBadge");
+        badgeObj.transform.SetParent(headerObj.transform, false);
+        RectTransform badgeRt = badgeObj.AddComponent<RectTransform>();
+        badgeRt.anchorMin = new Vector2(0, 0.5f); badgeRt.anchorMax = new Vector2(0, 0.5f);
+        badgeRt.pivot = new Vector2(0, 0.5f);
+        badgeRt.anchoredPosition = new Vector2(0, 0);
+        badgeRt.sizeDelta = new Vector2(170, 30);
 
-        // Explore Button
-        GameObject exploreBtn = CreateButton(collContent, "ExploreButton", "Explore", out Text exploreText);
-        exploreBtn.GetComponent<Image>().color = new Color(0.2f, 0.6f, 0.3f, 1f); // Green accent
-        var expRt = exploreBtn.GetComponent<RectTransform>();
-        expRt.anchorMin = new Vector2(1, 0); expRt.anchorMax = new Vector2(1, 0);
-        expRt.pivot = new Vector2(1, 0);
-        expRt.anchoredPosition = new Vector2(-15, 15);
-        expRt.sizeDelta = new Vector2(80, 30);
+        Image badgeImg = badgeObj.AddComponent<Image>();
+        badgeImg.color = new Color(0.02f, 0.31f, 0.23f, 0.9f); // Dark emerald capsule background
 
-        // --- EXPANDED VIEW ---
-        GameObject expanded = new GameObject("ExpandedView");
-        expanded.transform.SetParent(root.transform, false);
-        var expViewRt = expanded.AddComponent<RectTransform>();
-        expViewRt.anchorMin = Vector2.zero; expViewRt.anchorMax = Vector2.one;
-        expViewRt.offsetMin = new Vector2(0, 0); expViewRt.offsetMax = new Vector2(0, 180); // taller
-        
-        var expImage = expanded.AddComponent<Image>();
-        expImage.color = new Color(0.12f, 0.15f, 0.12f, 0.98f);
+        Text statusText = CreateText(badgeObj, "StatusText", "● IDENTIFIED", 13, FontStyle.Bold, TextAnchor.MiddleCenter, uiFont);
+        statusText.color = new Color(0.20f, 0.83f, 0.60f, 1.0f); // Vibrant emerald #34D399
+        StretchFull(statusText.GetComponent<RectTransform>());
 
-        GameObject expContent = new GameObject("Content");
-        expContent.transform.SetParent(expanded.transform, false);
-        var expContentRt = expContent.AddComponent<RectTransform>();
-        expContentRt.anchorMin = Vector2.zero; expContentRt.anchorMax = Vector2.one;
-        expContentRt.offsetMin = Vector2.zero; expContentRt.offsetMax = Vector2.zero;
-        expContentRt.anchoredPosition3D = new Vector3(0, 0, -2f);
+        // Brand Label (Right)
+        GameObject brandObj = new GameObject("BrandTag");
+        brandObj.transform.SetParent(headerObj.transform, false);
+        RectTransform brandRt = brandObj.AddComponent<RectTransform>();
+        brandRt.anchorMin = new Vector2(1, 0.5f); brandRt.anchorMax = new Vector2(1, 0.5f);
+        brandRt.pivot = new Vector2(1, 0.5f);
+        brandRt.anchoredPosition = new Vector2(0, 0);
+        brandRt.sizeDelta = new Vector2(180, 24);
 
-        // Title
-        Text expCommonName = CreateText(expContent, "ExpCommonName", "Common Name", 18, FontStyle.Bold, TextAnchor.UpperCenter);
-        expCommonName.color = new Color(0.5f, 0.9f, 0.5f);
-        SetRect(expCommonName, 15, -15, 270, 25);
+        Text brandText = CreateText(brandObj, "BrandText", "TEAM CERO FIELD AR", 11, FontStyle.Bold, TextAnchor.MiddleRight, uiFont);
+        brandText.color = new Color(0.58f, 0.64f, 0.72f, 0.9f); // Slate #94A3B8
+        StretchFull(brandRt);
 
-        // About Label
-        Text aboutLabel = CreateText(expContent, "AboutLabel", "ABOUT", 10, FontStyle.Bold, TextAnchor.UpperLeft);
-        aboutLabel.color = new Color(0.6f, 0.6f, 0.6f);
-        SetRect(aboutLabel, 15, -50, 270, 15);
-        
-        Text description = CreateText(expContent, "Description", "Description...", 11, FontStyle.Normal, TextAnchor.UpperLeft);
-        SetRect(description, 15, -65, 270, 60);
+        // Header Divider Line
+        GameObject headerDiv = new GameObject("HeaderDivider");
+        headerDiv.transform.SetParent(bgObj.transform, false);
+        RectTransform hDivRt = headerDiv.AddComponent<RectTransform>();
+        hDivRt.anchorMin = new Vector2(0, 1); hDivRt.anchorMax = new Vector2(1, 1);
+        hDivRt.pivot = new Vector2(0.5f, 1);
+        hDivRt.anchoredPosition = new Vector2(0, -60);
+        hDivRt.sizeDelta = new Vector2(-40, 2);
+        Image hDivImg = headerDiv.AddComponent<Image>();
+        hDivImg.color = new Color(0.12f, 0.16f, 0.23f, 1f); // Slate divider #1E293B
 
-        // Ecology Label
-        Text ecoLabel = CreateText(expContent, "EcoLabel", "ECOLOGY", 10, FontStyle.Bold, TextAnchor.UpperLeft);
-        ecoLabel.color = new Color(0.6f, 0.6f, 0.6f);
-        SetRect(ecoLabel, 15, -135, 270, 15);
+        // 6.3 Identity Section (Common Name + Scientific Name)
+        // Common Name (26pt Bold White)
+        Text commonName = CreateText(bgObj, "CommonName", "Common Name", 26, FontStyle.Bold, TextAnchor.UpperLeft, uiFont);
+        commonName.color = Color.white;
+        SetRect(commonName, 25, -70, 570, 36);
 
-        Text ecoText = CreateText(expContent, "EcoText", "Ecology...", 11, FontStyle.Normal, TextAnchor.UpperLeft);
-        SetRect(ecoText, 15, -150, 270, 60);
-        
-        // Conservation Label
-        Text consLabel = CreateText(expContent, "ConsLabel", "CONSERVATION", 10, FontStyle.Bold, TextAnchor.UpperLeft);
-        consLabel.color = new Color(0.6f, 0.6f, 0.6f);
-        SetRect(consLabel, 15, -220, 270, 15);
+        // Scientific Name (17pt Italic Emerald)
+        Text scientificName = CreateText(bgObj, "ScientificName", "Scientific Name", 17, FontStyle.Italic, TextAnchor.UpperLeft, uiFont);
+        scientificName.color = new Color(0.20f, 0.83f, 0.60f, 1.0f); // Emerald #34D399
+        SetRect(scientificName, 25, -108, 570, 28);
 
-        Text consText = CreateText(expContent, "ConsText", "Conservation...", 11, FontStyle.Normal, TextAnchor.UpperLeft);
-        SetRect(consText, 15, -235, 270, 40);
+        // Identity Divider Line
+        GameObject idDiv = new GameObject("IdentityDivider");
+        idDiv.transform.SetParent(bgObj.transform, false);
+        RectTransform idDivRt = idDiv.AddComponent<RectTransform>();
+        idDivRt.anchorMin = new Vector2(0, 1); idDivRt.anchorMax = new Vector2(1, 1);
+        idDivRt.pivot = new Vector2(0.5f, 1);
+        idDivRt.anchoredPosition = new Vector2(0, -142);
+        idDivRt.sizeDelta = new Vector2(-40, 1);
+        Image idDivImg = idDiv.AddComponent<Image>();
+        idDivImg.color = new Color(0.12f, 0.16f, 0.23f, 0.8f);
 
-        // Close Button
-        GameObject closeBtn = CreateButton(expContent, "CloseButton", "Close", out Text closeBtnText);
-        closeBtn.GetComponent<Image>().color = new Color(0.3f, 0.3f, 0.3f, 1f);
-        var clsRt = closeBtn.GetComponent<RectTransform>();
-        clsRt.anchorMin = new Vector2(1, 0); clsRt.anchorMax = new Vector2(1, 0);
-        clsRt.pivot = new Vector2(1, 0);
-        clsRt.anchoredPosition = new Vector2(-15, 15);
-        clsRt.sizeDelta = new Vector2(80, 30);
+        // 6.4 Four Contextual Information Quadrants (2x2 Grid)
+        // Top-Left: PLANT FAMILY (Spec Field 3)
+        Text familyLabel = CreateText(bgObj, "FamilyLabel", "PLANT FAMILY", 11, FontStyle.Bold, TextAnchor.UpperLeft, uiFont);
+        familyLabel.color = new Color(0.58f, 0.64f, 0.72f, 0.9f);
+        SetRect(familyLabel, 25, -155, 275, 18);
 
-        // Dismiss Button
-        GameObject dismissBtn = CreateButton(expContent, "DismissButton", "Dismiss Card", out Text dismissBtnText);
-        dismissBtn.GetComponent<Image>().color = new Color(0.6f, 0.2f, 0.2f, 1f);
-        var dsmRt = dismissBtn.GetComponent<RectTransform>();
-        dsmRt.anchorMin = new Vector2(0, 0); dsmRt.anchorMax = new Vector2(0, 0);
-        dsmRt.pivot = new Vector2(0, 0);
-        dsmRt.anchoredPosition = new Vector2(15, 15);
-        dsmRt.sizeDelta = new Vector2(100, 30);
+        Text familyValue = CreateText(bgObj, "FamilyValue", "Family Name", 15, FontStyle.Bold, TextAnchor.UpperLeft, uiFont);
+        familyValue.color = new Color(0.95f, 0.96f, 0.98f, 1f);
+        SetRect(familyValue, 25, -175, 275, 26);
 
-        // Wiring
-        speciesCard.collapsedView = collapsed;
-        speciesCard.expandedView = expanded;
+        // Top-Right: NATIVE REGION (Spec Field 4)
+        Text regionLabel = CreateText(bgObj, "RegionLabel", "NATIVE REGION", 11, FontStyle.Bold, TextAnchor.UpperLeft, uiFont);
+        regionLabel.color = new Color(0.58f, 0.64f, 0.72f, 0.9f);
+        SetRect(regionLabel, 320, -155, 275, 18);
+
+        Text regionValue = CreateText(bgObj, "RegionValue", "Native Region", 15, FontStyle.Bold, TextAnchor.UpperLeft, uiFont);
+        regionValue.color = new Color(0.95f, 0.96f, 0.98f, 1f);
+        SetRect(regionValue, 320, -175, 275, 26);
+
+        // Grid Horizontal Divider
+        GameObject gridHDiv = new GameObject("GridHDivider");
+        gridHDiv.transform.SetParent(bgObj.transform, false);
+        RectTransform ghDivRt = gridHDiv.AddComponent<RectTransform>();
+        ghDivRt.anchorMin = new Vector2(0, 1); ghDivRt.anchorMax = new Vector2(1, 1);
+        ghDivRt.pivot = new Vector2(0.5f, 1);
+        ghDivRt.anchoredPosition = new Vector2(0, -212);
+        ghDivRt.sizeDelta = new Vector2(-40, 1);
+        Image ghDivImg = gridHDiv.AddComponent<Image>();
+        ghDivImg.color = new Color(0.12f, 0.16f, 0.23f, 0.8f);
+
+        // Bottom-Left: ECOLOGICAL IMPORTANCE (Spec Field 5)
+        Text ecoLabel = CreateText(bgObj, "EcoLabel", "ECOLOGICAL IMPORTANCE", 11, FontStyle.Bold, TextAnchor.UpperLeft, uiFont);
+        ecoLabel.color = new Color(0.58f, 0.64f, 0.72f, 0.9f);
+        SetRect(ecoLabel, 25, -222, 275, 18);
+
+        Text ecoValue = CreateText(bgObj, "EcoValue", "Ecological importance details...", 13, FontStyle.Normal, TextAnchor.UpperLeft, uiFont);
+        ecoValue.color = new Color(0.89f, 0.91f, 0.94f, 1f);
+        ecoValue.horizontalOverflow = HorizontalWrapMode.Wrap;
+        ecoValue.verticalOverflow = VerticalWrapMode.Truncate;
+        SetRect(ecoValue, 25, -242, 275, 95);
+
+        // Bottom-Right: CONSERVATION STATUS (Spec Field 6)
+        Text consLabel = CreateText(bgObj, "ConsLabel", "CONSERVATION STATUS", 11, FontStyle.Bold, TextAnchor.UpperLeft, uiFont);
+        consLabel.color = new Color(0.58f, 0.64f, 0.72f, 0.9f);
+        SetRect(consLabel, 320, -222, 275, 18);
+
+        Text consValue = CreateText(bgObj, "ConsValue", "Least Concern (IUCN)", 14, FontStyle.Bold, TextAnchor.UpperLeft, uiFont);
+        consValue.color = new Color(0.22f, 0.74f, 0.97f, 1f); // Sky blue #38BDF8 accent
+        consValue.horizontalOverflow = HorizontalWrapMode.Wrap;
+        SetRect(consValue, 320, -242, 275, 95);
+
+        // Grid Vertical Divider Line
+        GameObject gridVDiv = new GameObject("GridVDivider");
+        gridVDiv.transform.SetParent(bgObj.transform, false);
+        RectTransform gvDivRt = gridVDiv.AddComponent<RectTransform>();
+        gvDivRt.anchorMin = new Vector2(0.5f, 1); gvDivRt.anchorMax = new Vector2(0.5f, 1);
+        gvDivRt.pivot = new Vector2(0.5f, 1);
+        gvDivRt.anchoredPosition = new Vector2(0, -150);
+        gvDivRt.sizeDelta = new Vector2(1, 195);
+        Image gvDivImg = gridVDiv.AddComponent<Image>();
+        gvDivImg.color = new Color(0.12f, 0.16f, 0.23f, 0.6f);
+
+        // 7. Wiring Component Serialized Fields
+        speciesCard.plaqueVisual = plaqueVisual.transform;
+        speciesCard.spatialTether = spatialTether;
+        speciesCard.statusBadgeText = statusText;
+        speciesCard.statusBadgeBackground = badgeImg;
         speciesCard.commonNameText = commonName;
         speciesCard.scientificNameText = scientificName;
-        speciesCard.familyText = familyRegion;
-        speciesCard.nativeRegionText = nativeRegion;
-        
-        speciesCard.expandedCommonNameText = expCommonName;
-        speciesCard.descriptionText = description;
-        speciesCard.ecoImportanceText = ecoText;
-        speciesCard.conservationStatusText = consText;
+        speciesCard.familyText = familyValue;
+        speciesCard.nativeRegionText = regionValue;
+        speciesCard.ecoImportanceText = ecoValue;
+        speciesCard.conservationStatusText = consValue;
+        speciesCard.collapsedView = bgObj;
+        speciesCard.expandedView = null;
+        speciesCard.baseScale = 0.00040f;
+        speciesCard.minScale = 0.00022f;
+        speciesCard.maxScale = 0.00065f;
 
-        // Button Events
-        UnityEditor.Events.UnityEventTools.AddPersistentListener(exploreBtn.GetComponent<Button>().onClick, speciesCard.ToggleExplore);
-        UnityEditor.Events.UnityEventTools.AddPersistentListener(closeBtn.GetComponent<Button>().onClick, speciesCard.ToggleExplore);
-        UnityEditor.Events.UnityEventTools.AddPersistentListener(dismissBtn.GetComponent<Button>().onClick, speciesCard.CloseCard);
-
+        // Save Prefab
         PrefabUtility.SaveAsPrefabAsset(root, path);
         Object.DestroyImmediate(root);
-        Debug.Log("ARSpeciesCard prefab rebuilt successfully at " + path);
+        Debug.Log("[Phase 3] Production ARSpeciesCard prefab successfully rebuilt at " + path);
     }
 
-    private static Text CreateText(GameObject parent, string name, string defaultText, int fontSize, FontStyle style, TextAnchor alignment)
+    private static Font ResolveFont()
+    {
+        Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        if (font != null) return font;
+        font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+        if (font != null) return font;
+        return Font.CreateDynamicFontFromOSFont("Arial", 16);
+    }
+
+    private static Material CreateMaterial(Color color, float metallic, float smoothness)
+    {
+        Shader shader = Shader.Find("Universal Render Pipeline/Lit") 
+                     ?? Shader.Find("Universal Render Pipeline/Unlit") 
+                     ?? Shader.Find("Standard");
+        
+        Material mat = new Material(shader);
+        mat.color = color;
+        if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", color);
+        if (mat.HasProperty("_Metallic")) mat.SetFloat("_Metallic", metallic);
+        if (mat.HasProperty("_Smoothness")) mat.SetFloat("_Smoothness", smoothness);
+        return mat;
+    }
+
+    private static Text CreateText(GameObject parent, string name, string defaultText, int fontSize, FontStyle style, TextAnchor alignment, Font font)
     {
         GameObject go = new GameObject(name);
         go.transform.SetParent(parent.transform, false);
         Text txt = go.AddComponent<Text>();
         txt.text = defaultText;
-        txt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        txt.font = font;
         txt.fontSize = fontSize;
         txt.fontStyle = style;
         txt.alignment = alignment;
@@ -203,27 +309,11 @@ public class CreateARSpeciesCardPrefab
         rt.sizeDelta = new Vector2(w, h);
     }
 
-    private static GameObject CreateButton(GameObject parent, string name, string labelText, out Text textComp)
+    private static void StretchFull(RectTransform rt)
     {
-        GameObject btnObj = new GameObject(name);
-        btnObj.transform.SetParent(parent.transform, false);
-        btnObj.AddComponent<Image>();
-        Button btn = btnObj.AddComponent<Button>();
-
-        GameObject txtObj = new GameObject("Text");
-        txtObj.transform.SetParent(btnObj.transform, false);
-        Text txt = txtObj.AddComponent<Text>();
-        txt.text = labelText;
-        txt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        txt.fontSize = 12;
-        txt.alignment = TextAnchor.MiddleCenter;
-        txt.color = Color.white;
-        
-        RectTransform txtRt = txt.GetComponent<RectTransform>();
-        txtRt.anchorMin = Vector2.zero; txtRt.anchorMax = Vector2.one;
-        txtRt.offsetMin = Vector2.zero; txtRt.offsetMax = Vector2.zero;
-        
-        textComp = txt;
-        return btnObj;
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+        rt.offsetMin = Vector2.zero;
+        rt.offsetMax = Vector2.zero;
     }
 }
