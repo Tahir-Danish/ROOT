@@ -6,8 +6,15 @@ using UnityEngine.UI;
 /// Displays all six required contextual botanical fields simultaneously on a high-contrast,
 /// opaque field plaque with distance-compensated scaling for clear readability at 0.5m-1.5m.
 /// </summary>
-public class ARSpeciesCard : MonoBehaviour
+public class ARSpeciesCard : MonoBehaviour, UnityEngine.EventSystems.IPointerClickHandler
 {
+    public static event System.Action<string> OnExploreRequested;
+
+    [Header("Navigation Context")]
+    [Tooltip("The species ID currently assigned to this card.")]
+    [SerializeField] private string _currentSpeciesId;
+    public string CurrentSpeciesId => _currentSpeciesId;
+
     [Header("Visual & Tether References")]
     [Tooltip("The floating plaque canvas/visual child that billboards and scales.")]
     public Transform plaqueVisual;
@@ -80,6 +87,12 @@ public class ARSpeciesCard : MonoBehaviour
         {
             spatialTether = GetComponentInChildren<SpatialTether>();
         }
+
+        Canvas plaqueCanvas = GetComponentInChildren<Canvas>();
+        if (plaqueCanvas != null && plaqueCanvas.renderMode == RenderMode.WorldSpace && plaqueCanvas.worldCamera == null)
+        {
+            plaqueCanvas.worldCamera = _mainCamera;
+        }
     }
 
     void Update()
@@ -122,6 +135,7 @@ public class ARSpeciesCard : MonoBehaviour
     /// </summary>
     public void PopulateData(string speciesId)
     {
+        _currentSpeciesId = speciesId;
         bool isKnown = MockSpeciesDatabase.TryGetSpeciesData(speciesId, out SpeciesData data);
 
         if (isKnown && speciesId != "unknown_plant")
@@ -178,6 +192,11 @@ public class ARSpeciesCard : MonoBehaviour
         {
             spatialTether.UpdateTetherGeometry();
         }
+
+        if (AppNavigationShell.Instance != null)
+        {
+            AppNavigationShell.Instance.NotifyActiveCardAvailable(speciesId);
+        }
     }
 
     private void SetStatusBadge(string label, Color textColor, Color bgColor)
@@ -198,10 +217,25 @@ public class ARSpeciesCard : MonoBehaviour
     {
         _isExpanded = !_isExpanded;
         UpdateView();
+
+        Debug.Log($"[ARSpeciesCard] ToggleExplore invoked for species: {_currentSpeciesId}");
+        if (AppNavigationShell.Instance != null)
+        {
+            AppNavigationShell.Instance.NavigateToPlantDetails(_currentSpeciesId);
+        }
+        else
+        {
+            OnExploreRequested?.Invoke(_currentSpeciesId);
+        }
     }
 
     public void CloseCard()
     {
+        if (AppNavigationShell.Instance != null)
+        {
+            AppNavigationShell.Instance.DismissActiveCardBanner();
+        }
+
         if (_uxManager != null)
         {
             _uxManager.DismissCard(this);
@@ -210,6 +244,12 @@ public class ARSpeciesCard : MonoBehaviour
         {
             Destroy(gameObject);
         }
+    }
+
+    public void OnPointerClick(UnityEngine.EventSystems.PointerEventData eventData)
+    {
+        Debug.Log($"[ARSpeciesCard] OnPointerClick on plaque. Species: {_currentSpeciesId}");
+        ToggleExplore();
     }
 
     private void UpdateView()
