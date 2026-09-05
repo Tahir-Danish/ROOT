@@ -398,29 +398,47 @@ public class Pv002Pipeline : MonoBehaviour
         var inputData = new float[1 * 3 * MODEL2_SIZE * MODEL2_SIZE];
         var pixels = _cameraTexture.GetPixels32();
         int origW = _cameraTexture.width;
-        
-        float scaleX = (float)w / MODEL2_SIZE;
-        float scaleY = (float)h / MODEL2_SIZE;
+        int origH = _cameraTexture.height;
+
+        // V6 Contract: Aspect-preserving resize, short side = 256, center crop = 224x224
+        int scaledW, scaledH;
+        if (w < h)
+        {
+            scaledW = 256;
+            scaledH = Mathf.RoundToInt(256f * (float)h / w);
+        }
+        else
+        {
+            scaledH = 256;
+            scaledW = Mathf.RoundToInt(256f * (float)w / h);
+        }
+
+        int offX = (scaledW - MODEL2_SIZE) / 2;
+        int offY = (scaledH - MODEL2_SIZE) / 2;
 
         float[] mean = { 0.485f, 0.456f, 0.406f };
         float[] std = { 0.229f, 0.224f, 0.225f };
 
         for (int dy = 0; dy < MODEL2_SIZE; dy++)
         {
+            int cropY = offY + dy;
+            int sy = y + Mathf.Clamp(Mathf.RoundToInt((float)cropY * h / scaledH), 0, h - 1);
+            sy = Mathf.Clamp(sy, 0, origH - 1);
+            int rowOffset = sy * origW;
+            int tensorRowOffset = dy * MODEL2_SIZE;
+
             for (int dx = 0; dx < MODEL2_SIZE; dx++)
             {
-                int sx = x + Mathf.Clamp(Mathf.RoundToInt(dx * scaleX), 0, w - 1);
-                int sy = y + Mathf.Clamp(Mathf.RoundToInt(dy * scaleY), 0, h - 1);
+                int cropX = offX + dx;
+                int sx = x + Mathf.Clamp(Mathf.RoundToInt((float)cropX * w / scaledW), 0, w - 1);
+                sx = Mathf.Clamp(sx, 0, origW - 1);
 
-                Color32 pixel = pixels[sy * origW + sx];
+                Color32 pixel = pixels[rowOffset + sx];
 
-                int rIdx = 0 * MODEL2_SIZE * MODEL2_SIZE + dy * MODEL2_SIZE + dx;
-                int gIdx = 1 * MODEL2_SIZE * MODEL2_SIZE + dy * MODEL2_SIZE + dx;
-                int bIdx = 2 * MODEL2_SIZE * MODEL2_SIZE + dy * MODEL2_SIZE + dx;
-
-                inputData[rIdx] = ((pixel.r / 255f) - mean[0]) / std[0];
-                inputData[gIdx] = ((pixel.g / 255f) - mean[1]) / std[1];
-                inputData[bIdx] = ((pixel.b / 255f) - mean[2]) / std[2];
+                int baseIdx = tensorRowOffset + dx;
+                inputData[0 * MODEL2_SIZE * MODEL2_SIZE + baseIdx] = ((pixel.r / 255f) - mean[0]) / std[0];
+                inputData[1 * MODEL2_SIZE * MODEL2_SIZE + baseIdx] = ((pixel.g / 255f) - mean[1]) / std[1];
+                inputData[2 * MODEL2_SIZE * MODEL2_SIZE + baseIdx] = ((pixel.b / 255f) - mean[2]) / std[2];
             }
         }
 

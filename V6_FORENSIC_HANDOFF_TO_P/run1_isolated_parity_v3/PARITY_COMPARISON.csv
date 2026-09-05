@@ -1,0 +1,11 @@
+run_id,sample_id,ref_m1_conf,unity_m1_conf,m1_conf_diff,ref_crop_w,ref_crop_h,unity_crop_w,unity_crop_h,ref_top1_idx,ref_top1_species,ref_top1_conf,unity_top1_idx,unity_top1_species,unity_top1_conf,top1_match,top3_match,max_probability_abs_diff,mean_probability_abs_diff,parity_status
+v3_forensic_1788589377,SMP_0001,0.4765,0.4765,0.0000,621,756,621,756,9,unknown_plant,0.4959,9,unknown_plant,0.4959,True,True,2.38165192e-07,4.47099667e-08,PASS
+v3_forensic_1788589377,SMP_0003,0.6724,0.6724,0.0000,528,458,528,458,4,05_caryota_urens,0.3895,4,05_caryota_urens,0.3895,True,True,1.19308388e-07,3.40045630e-08,PASS
+v3_forensic_1788589377,SMP_0006,0.4593,0.4593,0.0000,548,543,548,543,5,07_strobilanthes_kunthiana,0.2842,5,07_strobilanthes_kunthiana,0.2842,True,True,2.08629562e-07,5.19024484e-08,PASS
+v3_forensic_1788589377,SMP_0009,0.5455,0.5455,0.0000,543,669,543,669,9,unknown_plant,0.3191,9,unknown_plant,0.3191,True,True,3.28276199e-07,6.38577999e-08,PASS
+v3_forensic_1788589377,SMP_0011,0.7599,0.7599,0.0000,770,554,770,554,9,unknown_plant,0.5514,9,unknown_plant,0.5514,True,True,1.18936554e-07,2.41858634e-08,PASS
+v3_forensic_1788589377,SMP_0012,0.5368,0.5368,0.0000,609,773,609,773,9,unknown_plant,0.4118,9,unknown_plant,0.4118,True,True,6.33288551e-08,2.30169918e-08,PASS
+v3_forensic_1788589377,SMP_0013,0.5674,0.5674,0.0000,765,518,765,518,9,unknown_plant,0.4266,9,unknown_plant,0.4266,True,True,5.84615326e-08,2.89834169e-08,PASS
+v3_forensic_1788589377,SMP_0014,0.5327,0.5327,0.0000,247,443,247,443,9,unknown_plant,0.3313,9,unknown_plant,0.3313,True,True,1.49321083e-07,3.38139426e-08,PASS
+v3_forensic_1788589377,SMP_0016,0.6248,0.6248,0.0000,612,199,612,199,3,04_mimusops_elengi,0.2696,3,04_mimusops_elengi,0.2696,True,True,1.19070602e-07,3.46961687e-08,PASS
+v3_forensic_1788589377,SMP_0017,0.8402,0.8402,0.0000,398,402,398,402,7,09_bougainvillea_spectabilis,0.4533,7,09_bougainvillea_spectabilis,0.4533,True,True,8.95583496e-08,2.97692947e-08,PASS

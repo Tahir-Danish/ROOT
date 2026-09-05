@@ -1,0 +1,89 @@
+{
+  "pipeline_name": "Team Cero Plant Localization & Species Identification Pipeline (V3 Integration)",
+  "version": "v3_controlled_integration",
+  "target_runtime": "Unity 6 (Sentis 2.1+ / ONNX Runtime)",
+  "model1": {
+    "filename": "prototypev2/models/flora_localizer_v1_tuned.onnx",
+    "architecture": "YOLO11n Object Detector",
+    "input": {
+      "name": "images",
+      "shape": [1, 3, 640, 640],
+      "layout": "NCHW",
+      "color_format": "RGB",
+      "data_type": "float32",
+      "value_range": "[0.0, 1.0]",
+      "letterbox": {
+        "target_width": 640,
+        "target_height": 640,
+        "padding_color": [114, 114, 114],
+        "scale_mode": "preserve_aspect_ratio_with_padding"
+      }
+    },
+    "output": {
+      "name": "output0",
+      "shape": [1, 5, 8400],
+      "layout": "[batch, 5, num_anchors]"
+    },
+    "postprocessing": {
+      "confidence_threshold": 0.40,
+      "iou_threshold": 0.45,
+      "coordinate_conversion": {
+        "formula_x1": "(center_x - width / 2.0 - pad_w) / scale_ratio",
+        "formula_y1": "(center_y - height / 2.0 - pad_h) / scale_ratio",
+        "formula_x2": "(center_x + width / 2.0 - pad_w) / scale_ratio",
+        "formula_y2": "(center_y + height / 2.0 - pad_h) / scale_ratio"
+      }
+    }
+  },
+  "crop_contract": {
+    "input_coordinate_space": "Original image pixel space [0..width, 0..height]",
+    "clipping_rules": {
+      "x1": "max(0, floor(x1))",
+      "y1": "max(0, floor(y1))",
+      "x2": "min(image_width, ceil(x2))",
+      "y2": "min(image_height, ceil(y2))"
+    },
+    "min_valid_crop_size": [10, 10]
+  },
+  "model2_v6_datafirst": {
+    "filename": "prototypev3/models/flora_species_classifier_v6_datafirst.onnx",
+    "sha256": "332e0ef013ca846000c154bbaf194dafff1edffa3d8a64308fad27b4b5e17dbe",
+    "architecture": "ResNet18 Specialist Classifier (PlantNet MultiHead)",
+    "input": {
+      "name": "image",
+      "shape": [1, 3, 224, 224],
+      "layout": "NCHW",
+      "color_format": "RGB",
+      "data_type": "float32",
+      "preprocessing": {
+        "resize_strategy": "Resize short side to 256 preserving aspect ratio, then CenterCrop 224x224",
+        "divide_by": 255.0,
+        "mean_subtraction": [0.485, 0.456, 0.406],
+        "std_division": [0.229, 0.224, 0.225]
+      }
+    },
+    "output": {
+      "name": "probabilities",
+      "shape": [1, 10],
+      "layout": "[batch, 10_specialist_classes]",
+      "semantics": "Softmax probability distribution over 10 specialist classes"
+    },
+    "class_mapping": {
+      "0": "01_alstonia_scholaris",
+      "1": "02_justicia_adhatoda",
+      "2": "03_acalypha_indica",
+      "3": "04_mimusops_elengi",
+      "4": "05_caryota_urens",
+      "5": "07_strobilanthes_kunthiana",
+      "6": "08_plumeria_alba",
+      "7": "09_bougainvillea_spectabilis",
+      "8": "10_gardenia_jasminoides",
+      "9": "unknown_plant"
+    },
+    "acceptance_rule": {
+      "confidence_threshold": 0.50,
+      "unknown_class_index": 9,
+      "rule": "Accept species if top-1 class_index != 9 AND top-1 probability >= 0.50, else output UNKNOWN_PLANT."
+    }
+  }
+}

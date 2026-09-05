@@ -1,0 +1,26 @@
+{
+  "index_to_species_id": {
+    "0": "01_alstonia_scholaris",
+    "1": "02_justicia_adhatoda",
+    "2": "03_acalypha_indica",
+    "3": "04_mimusops_elengi",
+    "4": "05_caryota_urens",
+    "5": "07_strobilanthes_kunthiana",
+    "6": "08_plumeria_alba",
+    "7": "09_bougainvillea_spectabilis",
+    "8": "10_gardenia_jasminoides",
+    "9": "unknown_plant"
+  },
+  "species_id_to_index": {
+    "01_alstonia_scholaris": 0,
+    "02_justicia_adhatoda": 1,
+    "03_acalypha_indica": 2,
+    "04_mimusops_elengi": 3,
+    "05_caryota_urens": 4,
+    "07_strobilanthes_kunthiana": 5,
+    "08_plumeria_alba": 6,
+    "09_bougainvillea_spectabilis": 7,
+    "10_gardenia_jasminoides": 8,
+    "unknown_plant": 9
+  }
+}

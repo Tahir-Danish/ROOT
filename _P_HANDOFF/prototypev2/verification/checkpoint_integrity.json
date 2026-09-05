@@ -1,0 +1,47 @@
+{
+  "creation_date": "2026-09-04T20:05:00+05:30",
+  "package_name": "prototypev2",
+  "models": {
+    "model1": {
+      "canonical_id": "M1_V1_TUNED",
+      "source_path": "runs/detect/plant_localizer_model1_v1_tuned_e40_img640/weights/best.pt",
+      "source_sha256": "76a34a1034af350da179d33d423c2d984fc65cacb9bb4c8ea91149be5caf17dd",
+      "source_size_bytes": 5453402,
+      "prototype_filename": "flora_localizer_v1_tuned.onnx",
+      "prototype_path": "prototypev2/models/flora_localizer_v1_tuned.onnx",
+      "exported_onnx_sha256": "3c1f841c0da136cc8d4e45d06981b5530e9938d57fb38d524bb8c3ac20ad5d4e",
+      "exported_onnx_size_bytes": 10604199,
+      "input_dimensions": [
+        1,
+        3,
+        640,
+        640
+      ],
+      "output_dimensions": [
+        1,
+        5,
+        8400
+      ]
+    },
+    "model2": {
+      "canonical_id": "M2_V6_AUTONOMOUS",
+      "source_path": "runs/classify/plant_classifier_model2_v6_autonomous/best.pth",
+      "source_sha256": "2482ff7bbde6ef3e618de674c2b48639e4b511bd5ce31faaba2b2cc6b888b72c",
+      "source_size_bytes": 47033281,
+      "prototype_filename": "flora_species_classifier_v6_autonomous.onnx",
+      "prototype_path": "prototypev2/models/flora_species_classifier_v6_autonomous.onnx",
+      "onnx_sha256": "b7f2d0e1850d71d4d7158cb598b215db109df35bbf53ebed2416e087bee1dfb3",
+      "onnx_size_bytes": 44719553,
+      "input_dimensions": [
+        1,
+        3,
+        224,
+        224
+      ],
+      "output_dimensions": [
+        1,
+        10
+      ]
+    }
+  }
+}

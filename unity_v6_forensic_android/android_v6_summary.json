@@ -1,0 +1,112 @@
+{
+  "device": {
+    "model": "motorola motorola edge 60 fusion",
+    "serial": "ZN42264RHT",
+    "os": "Android OS 16 (API 36)",
+    "package": "com.UnityTechnologies.com.unity.template.urpblank",
+    "unity_version": "6000.5.10f1",
+    "scripting_backend": "il2cpp (arm64-v8a)",
+    "sentis_backend": "GPUCompute"
+  },
+  "observation_summary": {
+    "total_pipeline_cycles": 38,
+    "total_camera_frames": 31,
+    "camera_resolution": "640x480 RGBA32",
+    "screen_resolution": "1220x2712",
+    "total_m1_detections": 37,
+    "total_m2_inferences": 37,
+    "total_accepted_specialists": 0,
+    "total_rejected_or_unknown": 37,
+    "species_distribution": {
+      "unknown_plant": 37
+    },
+    "m2_confidence_stats": {
+      "count": 37,
+      "mean": 0.4643243243243243,
+      "std": 0.12536520790982317,
+      "min": 0.27,
+      "p50": 0.47,
+      "p95": 0.6419999999999997,
+      "max": 0.7
+    },
+    "timings_ms": {
+      "total_pipeline": {
+        "count": 3,
+        "mean": 663.6666666666666,
+        "std": 25.92724864350674,
+        "min": 627.0,
+        "p50": 682.0,
+        "p95": 682.0,
+        "max": 682.0
+      },
+      "model1_localizer": {
+        "count": 3,
+        "mean": 422.6666666666667,
+        "std": 15.520595635763755,
+        "min": 404.0,
+        "p50": 422.0,
+        "p95": 440.0,
+        "max": 442.0
+      },
+      "nms": {
+        "count": 3,
+        "mean": 0.3333333333333333,
+        "std": 0.4714045207910317,
+        "min": 0.0,
+        "p50": 0.0,
+        "p95": 0.8999999999999999,
+        "max": 1.0
+      },
+      "crop_preprocessing": {
+        "count": 3,
+        "mean": 1.3333333333333333,
+        "std": 0.4714045207910317,
+        "min": 1.0,
+        "p50": 1.0,
+        "p95": 1.9,
+        "max": 2.0
+      },
+      "model2_classifier": {
+        "count": 3,
+        "mean": 232.33333333333334,
+        "std": 14.72714802291635,
+        "min": 215.0,
+        "p50": 231.0,
+        "p95": 249.0,
+        "max": 251.0
+      }
+    },
+    "ar_anchoring": {
+      "candidate_confirmations": 0,
+      "anchors_created": 0,
+      "details": []
+    },
+    "errors_detected": 0
+  },
+  "field_availability_audit": {
+    "camera_input_dimensions": "CAPTURED (640x480 RGBA32)",
+    "camera_acquisition_state": "CAPTURED (Continuous active streaming)",
+    "m1_detection_count": "CAPTURED",
+    "m1_max_confidence": "CAPTURED",
+    "m1_bounding_boxes": "CAPTURED (x1, y1, x2, y2 in 640x640 space)",
+    "crop_rescaling_coordinates": "CAPTURED (aspect-preserving short-side-256 + 224 center crop calculated)",
+    "m1_m2_crop_latency": "CAPTURED (1-2 ms)",
+    "m2_inference_latency": "CAPTURED (200-260 ms GPUCompute)",
+    "total_pipeline_latency": "CAPTURED (430-730 ms)",
+    "m2_top1_species": "CAPTURED",
+    "m2_top1_confidence": "CAPTURED",
+    "m2_rejection_decision": "CAPTURED",
+    "species_classes_mapping": "CAPTURED (10 authoritative classes)",
+    "state_machine_events": "CAPTURED (NO_TARGET, UNKNOWN_TARGET, CONFIRMED_TARGET)",
+    "ui_bridge_events": "CAPTURED",
+    "ar_spatial_raycast_events": "CAPTURED",
+    "ar_native_anchor_events": "CAPTURED",
+    "screen_visual_rendering": "CAPTURED (Live screencaps)",
+    "m2_top2_species": "UNAVAILABLE (Not logged by production Pv002Pipeline.cs to avoid GC/allocations)",
+    "m2_top2_confidence": "UNAVAILABLE (Not logged by production Pv002Pipeline.cs)",
+    "m2_top3_species": "UNAVAILABLE (Not logged by production Pv002Pipeline.cs)",
+    "m2_top3_confidence": "UNAVAILABLE (Not logged by production Pv002Pipeline.cs)",
+    "m2_full_probability_distribution": "UNAVAILABLE (Not logged by production Pv002Pipeline.cs)",
+    "m2_tensor_mean_min_max": "UNAVAILABLE (Not logged by production Pv002Pipeline.cs)"
+  }
+}

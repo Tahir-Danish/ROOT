@@ -1,0 +1,29 @@
+{
+  "models": {
+    "original_v3_package_model": {
+      "path": "prototypev3/models/flora_species_classifier_v6_datafirst.onnx",
+      "sha256": "332e0ef013ca846000c154bbaf194dafff1edffa3d8a64308fad27b4b5e17dbe",
+      "size_bytes": 125633,
+      "status": "External data format; contains Sentis 2.6.1 offset loader bug"
+    },
+    "original_v3_external_weights": {
+      "path": "prototypev3/models/flora_species_classifier_v6_datafirst.onnx.data",
+      "sha256": "8c4c370db259efe096f89804889af2f8ff5311f616013c9218263280dd364e40",
+      "size_bytes": 44717760,
+      "status": "External weight buffer"
+    },
+    "monolithic_v6_model": {
+      "path": "prototypev3/models/flora_species_classifier_v6_datafirst_monolithic.onnx",
+      "sha256": "6fd000f16654eb5f47babeaa6b8c377865be623c03c11f90fa4d3c8e62a7a268",
+      "size_bytes": 44843421,
+      "status": "Monolithic format; 100% numerical parity, bypasses Sentis external data bug"
+    },
+    "production_unity_asset": {
+      "path": "Assets/Models/P_updated/plant_classifier_model2_v6.onnx",
+      "sha256": "6fd000f16654eb5f47babeaa6b8c377865be623c03c11f90fa4d3c8e62a7a268",
+      "guid": "f7fa0b954a0610e4b9dc47be0a19ae8c",
+      "size_bytes": 44843421,
+      "status": "Currently deployed in Team_Cero production"
+    }
+  }
+}
