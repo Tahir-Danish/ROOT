@@ -1,0 +1,56 @@
+{
+  "species_id": "SP009",
+  "scientific_name": "Bougainvillea spectabilis Willd.",
+  "accepted_name": "Bougainvillea spectabilis Willd.",
+  "taxonomic_status": "Accepted",
+  "synonyms": [
+    "Bougainvillea bracteata Pers."
+  ],
+  "common_names": [
+    "Great Bougainvillea",
+    "Paper Flower",
+    "Kagaz ki Phool",
+    "Kagitham Poo"
+  ],
+  "family": "Nyctaginaceae",
+  "genus": "Bougainvillea",
+  "native_region": "Tropical South America (Brazil, Bolivia, Peru)",
+  "habitat": "Widely cultivated across India as an ornamental hedge and garden climber",
+  "growth_form": "Vine/Shrub",
+  "ecological_importance": "Provides dense nesting cover for small birds and lizards. Papery bracts protect the minute true flowers from intense sunlight.",
+  "conservation_status": "Not Evaluated / Widely Naturalized and Cultivated",
+  "threats": [
+    "None; invasive in certain tropical island ecosystems, but managed as an ornamental in urban settings."
+  ],
+  "conservation_actions": [
+    "Maintained and pruned as landscape hedging on campus."
+  ],
+  "field_identification_notes": [
+    "Scrambling woody shrub/vine with sharp, curved axillary thorns.",
+    "Brilliant papery bracts (magenta, pink, purple) surrounding tiny white flowers.",
+    "Pubescent ovate leaves arranged alternately."
+  ],
+  "ml_relevance": "Vibrant papery bracts and sharp axillary thorns provide distinctive visual classification features.",
+  "ar_information": {
+    "quick_identification": "Thorny scrambling vine; large papery colored bracts; tiny white tubular flowers.",
+    "ecological_importance": "Resilient drought-tolerant hedge providing dense avian nesting cover.",
+    "conservation_message": "Secure / Widely Cultivated. The colorful parts that look like petals are actually modified leaves called bracts; the true flower is the tiny white tubular structure in the center."
+  },
+  "vit_campus_relevance": {
+    "status": "CONFIRMED",
+    "location": "Campus boundary walls, gates, and ornamental garden trellises",
+    "verification_required": false
+  },
+  "confidence_level": "High",
+  "sources": [
+    {
+      "source_id": "SRC01",
+      "source_name": "POWO"
+    },
+    {
+      "source_id": "SRC02",
+      "source_name": "World Flora Online"
+    }
+  ],
+  "last_verified": "2026-09-02"
+}

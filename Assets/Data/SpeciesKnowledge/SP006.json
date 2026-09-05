@@ -1,0 +1,62 @@
+{
+  "species_id": "SP006",
+  "scientific_name": "Pterocarpus santalinus L. f.",
+  "accepted_name": "Pterocarpus santalinus L. f.",
+  "taxonomic_status": "Accepted",
+  "synonyms": [
+    "Lingoum santalinum (L. f.) Kuntze"
+  ],
+  "common_names": [
+    "Red Sanders",
+    "Red Sandalwood",
+    "Sanderswood",
+    "Raktachandan",
+    "Lal Chandan",
+    "Sivappu Chandanam",
+    "Sembarattam"
+  ],
+  "family": "Fabaceae",
+  "genus": "Pterocarpus",
+  "native_region": "Endemic to the southern Eastern Ghats mountain range in Andhra Pradesh, India",
+  "habitat": "Dry hill forests",
+  "growth_form": "Tree",
+  "ecological_importance": "Endemic cornerstone species of dry deciduous thorn and scrub forests. Supports specialized insect pollinators and contributes organic matter to rocky, nutrient-poor soils.",
+  "conservation_status": "Endangered (EN)",
+  "threats": [
+    "Rampant international smuggling and illegal harvesting for high-value heartwood"
+  ],
+  "conservation_actions": [
+    "Strict governmental protection",
+    "Anti-smuggling task forces",
+    "Ex-situ conservation in botanical gardens",
+    "Micropropagation research"
+  ],
+  "field_identification_notes": [
+    "Trifoliolate leathery leaves with rounded to ovate leaflets.",
+    "Dark, rugged, blocky bark exuding blood-red resin (pterocarpin) when injured.",
+    "Flat, circular, winged samara pods."
+  ],
+  "ml_relevance": "Trifoliolate leaves and dark blocky bark with red exudate.",
+  "ar_information": {
+    "quick_identification": "Trifoliolate leathery leaves; dark blocky bark bleeding red resin; circular winged pods.",
+    "ecological_importance": "Keystone endemic of dry scrub forests.",
+    "conservation_message": "Endangered (EN) CITES Appendix II. Highly prized globally for its rich red heartwood, making it one of the most heavily trafficked timber species in the world."
+  },
+  "vit_campus_relevance": {
+    "status": "REPORTED",
+    "location": "Campus botanical demonstration plots",
+    "verification_required": true
+  },
+  "confidence_level": "High",
+  "sources": [
+    {
+      "source_id": "SRC01",
+      "source_name": "IUCN Red List Assessment for Pterocarpus santalinus"
+    },
+    {
+      "source_id": "SRC02",
+      "source_name": "POWO"
+    }
+  ],
+  "last_verified": "2026-09-02"
+}

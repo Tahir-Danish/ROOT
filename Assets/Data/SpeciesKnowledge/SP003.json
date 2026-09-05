@@ -1,0 +1,58 @@
+{
+  "species_id": "SP003",
+  "scientific_name": "Acalypha indica L.",
+  "accepted_name": "Acalypha indica L.",
+  "taxonomic_status": "Accepted",
+  "synonyms": [
+    "Ricinocarpus indicus (L.) Kuntze"
+  ],
+  "common_names": [
+    "Indian Copperleaf",
+    "Indian Acalypha",
+    "Three-seeded Mercury",
+    "Kuppameni",
+    "Khokli",
+    "Kuppaimeni"
+  ],
+  "family": "Euphorbiaceae",
+  "genus": "Acalypha",
+  "native_region": "Tropical Asia and Africa",
+  "habitat": "Waste places, roadsides, disturbed habitats",
+  "growth_form": "Herb",
+  "ecological_importance": "Acts as an important ruderal weed supporting localized insect herbivores and serving as a well-known stimulant for domestic cats.",
+  "conservation_status": "Not Evaluated / Least Concern",
+  "threats": [
+    "None; often managed as a weed in cultivated gardens."
+  ],
+  "conservation_actions": [
+    "Maintained in biodiversity corners as an ethnobotanically significant ruderal native plant."
+  ],
+  "field_identification_notes": [
+    "Slender herbaceous weed found abundantly in waste places and roadsides.",
+    "Alternate ovate leaves with serrated margins and 3-5 basal veins.",
+    "Distinctive cup-shaped, folded green bracts enclosing tiny flowers in dangling axillary spikes."
+  ],
+  "ml_relevance": "Ovate-rhomboid leaves with serrated margins and axillary dangling flower spikes with cup-shaped bracts.",
+  "ar_information": {
+    "quick_identification": "Slender annual herb; ovate leaves; unique cup-shaped bracts enclosing small flower spikes.",
+    "ecological_importance": "Ruderal colonizer; favored by domestic felines; supports micro-insects.",
+    "conservation_message": "Not Evaluated / Common Weed. Known in Tamil Nadu as Kuppaimeni, valued historically in traditional dermatology."
+  },
+  "vit_campus_relevance": {
+    "status": "CONFIRMED",
+    "location": "Waste lands, grassy borders, and unpaved pathways",
+    "verification_required": false
+  },
+  "confidence_level": "High",
+  "sources": [
+    {
+      "source_id": "SRC01",
+      "source_name": "POWO"
+    },
+    {
+      "source_id": "SRC02",
+      "source_name": "Siddha Pharmacopoeia"
+    }
+  ],
+  "last_verified": "2026-09-02"
+}

@@ -1,0 +1,59 @@
+{
+  "species_id": "SP007",
+  "scientific_name": "Strobilanthes kunthiana (Nees) T. Anderson ex Benth.",
+  "accepted_name": "Strobilanthes kunthiana (Nees) T. Anderson ex Benth.",
+  "taxonomic_status": "Accepted",
+  "synonyms": [
+    "Phlebophyllum kunthianum Nees"
+  ],
+  "common_names": [
+    "Neelakurinji",
+    "Kurinji",
+    "Nilakurinji"
+  ],
+  "family": "Acanthaceae",
+  "genus": "Strobilanthes",
+  "native_region": "Endemic to shola-grassland ecosystems of the Southern Western Ghats in South India",
+  "habitat": "High-altitude shola-grassland slopes above 1,800 meters elevation",
+  "growth_form": "Shrub",
+  "ecological_importance": "Synchronous mass flowering triggers massive population surges in pollinators, bees, and birds.",
+  "conservation_status": "Endangered (EN)",
+  "threats": [
+    "Conversion of native shola-grasslands to exotic tree plantations",
+    "Agricultural encroachment",
+    "Tourism pressure"
+  ],
+  "conservation_actions": [
+    "Habitat protection in national parks",
+    "Grassland restoration",
+    "Strict tourism management"
+  ],
+  "field_identification_notes": [
+    "Hairy elliptic leaves with prominent venation found in high-elevation grassland ecosystems.",
+    "Striking purplish-blue bell-shaped flowers appearing en masse during synchronous 12-year bloom cycles.",
+    "Woody shrub stems drying after seeding."
+  ],
+  "ml_relevance": "Purplish-blue bell-shaped flowers during bloom phase and pubescent elliptic leaves.",
+  "ar_information": {
+    "quick_identification": "Hairy elliptic leaves; vibrant purplish-blue bell flowers.",
+    "ecological_importance": "Keystone species driving multi-year pollinator booms.",
+    "conservation_message": "Endangered (EN) due to restricted habitat. Famous for its mass gregarious flowering spectacle occurring precisely once every 12 years, turning hill slopes completely blue."
+  },
+  "vit_campus_relevance": {
+    "status": "UNVERIFIED",
+    "location": "Absent",
+    "verification_required": true
+  },
+  "confidence_level": "High",
+  "sources": [
+    {
+      "source_id": "SRC01",
+      "source_name": "IUCN Red List Assessment"
+    },
+    {
+      "source_id": "SRC02",
+      "source_name": "BSI Flora of Nilgiris"
+    }
+  ],
+  "last_verified": "2026-09-02"
+}

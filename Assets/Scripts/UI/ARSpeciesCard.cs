@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using TeamCero.Data.SpeciesKnowledge;
 
 /// <summary>
 /// Upgraded production ARSpeciesCard presentation adhering to Spatial AR Spec v0.2.
@@ -14,6 +15,16 @@ public class ARSpeciesCard : MonoBehaviour, UnityEngine.EventSystems.IPointerCli
     [Tooltip("The species ID currently assigned to this card.")]
     [SerializeField] private string _currentSpeciesId;
     public string CurrentSpeciesId => _currentSpeciesId;
+
+    [Tooltip("The canonical species ID (e.g. SP005) resolved via SpeciesClassMapping.")]
+    [SerializeField] private string _canonicalSpeciesId = "";
+    public string CanonicalSpeciesId => _canonicalSpeciesId;
+
+    /// <summary>
+    /// The authoritative SpeciesKnowledgeRecord currently bound to this card.
+    /// Exposes all root fields (threats, actions, notes, sources, etc.) for UI and extensions.
+    /// </summary>
+    public TeamCero.Data.SpeciesKnowledge.SpeciesKnowledgeRecord CurrentRecord { get; private set; }
 
     [Header("Anchor-Lifetime Identity Lock")]
     [Tooltip("Whether the confirmed species identity is permanently locked for the lifetime of the AR anchor.")]
@@ -71,6 +82,10 @@ public class ARSpeciesCard : MonoBehaviour, UnityEngine.EventSystems.IPointerCli
     public GameObject expandedView;
     public Text expandedCommonNameText;
 
+    [Header("Action Controls")]
+    [Tooltip("Explore button on the card plaque.")]
+    public Button exploreButton;
+
     [Header("Distance Scaling & Readability (Spec Section 13)")]
     [Tooltip("Base angular scale factor for world-space canvas.")]
     public float baseScale = 0.00040f;
@@ -94,6 +109,10 @@ public class ARSpeciesCard : MonoBehaviour, UnityEngine.EventSystems.IPointerCli
         _mainCamera = Camera.main;
         if (collapsedView != null) collapsedView.SetActive(true);
         if (expandedView != null) expandedView.SetActive(false);
+        if (exploreButton != null)
+        {
+            exploreButton.onClick.AddListener(Explore);
+        }
     }
 
     void Start()
@@ -188,30 +207,45 @@ public class ARSpeciesCard : MonoBehaviour, UnityEngine.EventSystems.IPointerCli
         }
 
         _currentSpeciesId = speciesId;
-        bool isKnown = MockSpeciesDatabase.TryGetSpeciesData(speciesId, out SpeciesData data);
+        _canonicalSpeciesId = SpeciesKnowledgeAdapter.ResolveCanonicalId(speciesId);
 
-        if (isKnown && speciesId != "unknown_plant")
+        bool isAuthoritativeKnown = SpeciesKnowledgeAdapter.TryGetRecordForSpecies(speciesId, out SpeciesKnowledgeRecord record);
+        CurrentRecord = record;
+
+        if (isAuthoritativeKnown && record != null)
         {
-            // Confirmed identification
+            // Confirmed identification from authoritative knowledge layer
             SetStatusBadge("● IDENTIFIED", ColorIdentifiedGreen, ColorIdentifiedBadgeBg);
 
-            SetText(commonNameText, string.IsNullOrEmpty(data.commonName) || data.commonName == "Data Unavailable" ? FormatSpeciesTitle(speciesId) : data.commonName);
-            SetText(scientificNameText, !string.IsNullOrEmpty(data.scientificName) ? data.scientificName : "Plantae sp.");
-            SetText(familyText, data.family);
-            SetText(nativeRegionText, data.nativeRegion);
-            SetText(ecoImportanceText, data.ecologicalImportance);
-            SetText(conservationStatusText, data.conservationStatus);
+            string primaryCommonName = (record.common_names != null && record.common_names.Count > 0)
+                ? record.common_names[0]
+                : (!string.IsNullOrEmpty(record.accepted_name) ? record.accepted_name : FormatSpeciesTitle(speciesId));
+
+            string ecoImportance = !string.IsNullOrEmpty(record.ar_information?.ecological_importance)
+                ? record.ar_information.ecological_importance
+                : (!string.IsNullOrEmpty(record.ecological_importance) ? record.ecological_importance : "Data Unavailable");
+
+            string quickId = !string.IsNullOrEmpty(record.ar_information?.quick_identification)
+                ? record.ar_information.quick_identification
+                : (!string.IsNullOrEmpty(record.growth_form) ? record.growth_form : "Data Unavailable");
+
+            SetText(commonNameText, primaryCommonName);
+            SetText(scientificNameText, !string.IsNullOrEmpty(record.scientific_name) ? record.scientific_name : "Plantae sp.");
+            SetText(familyText, !string.IsNullOrEmpty(record.family) ? record.family : "Data Unavailable");
+            SetText(nativeRegionText, !string.IsNullOrEmpty(record.native_region) ? record.native_region : "Data Unavailable");
+            SetText(ecoImportanceText, ecoImportance);
+            SetText(conservationStatusText, !string.IsNullOrEmpty(record.conservation_status) ? record.conservation_status : "Data Unavailable");
 
             // Backward compatibility
-            SetText(expandedCommonNameText, data.commonName);
-            SetText(descriptionText, data.description);
+            SetText(expandedCommonNameText, primaryCommonName);
+            SetText(descriptionText, quickId);
 
             // Engage identity lock for confirmed species (immutable for anchor lifetime)
             _lockedSpeciesId = speciesId;
             _isIdentityLocked = true;
-            Debug.Log($"[IdentityLock] LOCK species={speciesId}");
+            Debug.Log($"[IdentityLock] LOCK species={speciesId} (canonical={_canonicalSpeciesId})");
         }
-        else if (isKnown && speciesId == "unknown_plant")
+        else if (speciesId == "unknown_plant" || _canonicalSpeciesId == SpeciesClassMapping.UnknownSpeciesId)
         {
             // Unconfirmed / Unknown target - DO NOT LOCK
             _lockedSpeciesId = "";
@@ -227,11 +261,11 @@ public class ARSpeciesCard : MonoBehaviour, UnityEngine.EventSystems.IPointerCli
             SetText(conservationStatusText, "Identification Pending");
 
             SetText(expandedCommonNameText, "Unknown Species");
-            SetText(descriptionText, data.description);
+            SetText(descriptionText, "Target under observation. Optical characteristics being analyzed.");
         }
         else
         {
-            // Unknown fallback - DO NOT LOCK
+            // Unknown fallback / missing knowledge record - DO NOT LOCK
             _lockedSpeciesId = "";
             _isIdentityLocked = false;
 
@@ -280,15 +314,33 @@ public class ARSpeciesCard : MonoBehaviour, UnityEngine.EventSystems.IPointerCli
     {
         _isExpanded = !_isExpanded;
         UpdateView();
+        Explore();
+    }
 
-        Debug.Log($"[ARSpeciesCard] ToggleExplore invoked for species: {_currentSpeciesId}");
-        if (AppNavigationShell.Instance != null)
+    /// <summary>
+    /// Opens the Plant Details screen using the locked canonical species context
+    /// without triggering a new ML classification.
+    /// </summary>
+    public void Explore()
+    {
+        string targetSpeciesId = !string.IsNullOrEmpty(_canonicalSpeciesId) && _canonicalSpeciesId != "UNKNOWN"
+            ? _canonicalSpeciesId
+            : (!string.IsNullOrEmpty(_lockedSpeciesId) ? _lockedSpeciesId : _currentSpeciesId);
+
+        if (string.IsNullOrEmpty(targetSpeciesId))
         {
-            AppNavigationShell.Instance.NavigateToPlantDetails(_currentSpeciesId);
+            targetSpeciesId = "unknown_plant";
         }
-        else
+
+        string canonicalId = SpeciesKnowledgeAdapter.ResolveCanonicalId(targetSpeciesId);
+
+        Debug.Log($"[ARSpeciesCard] Card Explore invoked -> navigating to Plant Details with locked canonical species: '{canonicalId}' (raw: '{targetSpeciesId}')");
+
+        OnExploreRequested?.Invoke(canonicalId);
+
+        if (AppNavigationShell.Instance != null && AppNavigationShell.Instance.CurrentScreen != AppScreenState.PlantDetails)
         {
-            OnExploreRequested?.Invoke(_currentSpeciesId);
+            AppNavigationShell.Instance.NavigateToPlantDetails(canonicalId);
         }
     }
 
@@ -312,7 +364,7 @@ public class ARSpeciesCard : MonoBehaviour, UnityEngine.EventSystems.IPointerCli
     public void OnPointerClick(UnityEngine.EventSystems.PointerEventData eventData)
     {
         Debug.Log($"[ARSpeciesCard] OnPointerClick on plaque. Species: {_currentSpeciesId}");
-        ToggleExplore();
+        Explore();
     }
 
     private void UpdateView()

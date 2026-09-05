@@ -1,0 +1,58 @@
+{
+  "species_id": "SP008",
+  "scientific_name": "Plumeria alba L.",
+  "accepted_name": "Plumeria alba L.",
+  "taxonomic_status": "Accepted",
+  "synonyms": [
+    "Plumeria acuminata W.T.Aiton (in part)"
+  ],
+  "common_names": [
+    "White Frangipani",
+    "Pagoda Tree",
+    "Temple Tree",
+    "Safed Champa",
+    "Perungalli",
+    "Arali"
+  ],
+  "family": "Apocynaceae",
+  "genus": "Plumeria",
+  "native_region": "Central America, Caribbean, and northern South America",
+  "habitat": "Widely cultivated in gardens, temples, and institutional campuses",
+  "growth_form": "Tree/Shrub",
+  "ecological_importance": "Night-fragrant flowers attract hawkmoths and specialized nocturnal insect pollinators. All parts of the plant contain toxic latex deterring mammalian herbivores.",
+  "conservation_status": "Least Concern / Widely Cultivated",
+  "threats": [
+    "None significant due to extensive horticultural propagation."
+  ],
+  "conservation_actions": [
+    "Maintained as ornamental landscape flora on institutional campuses."
+  ],
+  "field_identification_notes": [
+    "Thick, succulent, club-like grey branches exuding white latex when broken.",
+    "Crowded, elongated lanceolate leaves clustered tightly at branch tips.",
+    "Large, strongly fragrant white flowers with yellow centers."
+  ],
+  "ml_relevance": "Thick succulent branch architecture, clustered terminal lanceolate leaves, and white-yellow flowers.",
+  "ar_information": {
+    "quick_identification": "Thick succulent branches; leaves clustered at tips; fragrant white flowers with yellow centers.",
+    "ecological_importance": "Night-scented flowers attract specialized hawkmoths.",
+    "conservation_message": "Least Concern / Widely Cultivated. Despite its delicate appearance, the branches are filled with caustic white latex that protects the tree from herbivores."
+  },
+  "vit_campus_relevance": {
+    "status": "CONFIRMED",
+    "location": "Campus garden beds and entrance courtyards",
+    "verification_required": false
+  },
+  "confidence_level": "High",
+  "sources": [
+    {
+      "source_id": "SRC01",
+      "source_name": "POWO"
+    },
+    {
+      "source_id": "SRC02",
+      "source_name": "World Flora Online"
+    }
+  ],
+  "last_verified": "2026-09-02"
+}

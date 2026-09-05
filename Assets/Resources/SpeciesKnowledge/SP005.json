@@ -1,0 +1,63 @@
+{
+  "species_id": "SP005",
+  "scientific_name": "Caryota urens L.",
+  "accepted_name": "Caryota urens L.",
+  "taxonomic_status": "Accepted",
+  "synonyms": [
+    "Caryota horrida Gardn."
+  ],
+  "common_names": [
+    "Fishtail Palm",
+    "Toddy Palm",
+    "Wine Palm",
+    "Kittul Palm",
+    "Bhilwan",
+    "Mari",
+    "Konda Panai",
+    "Thippili Panai"
+  ],
+  "family": "Arecaceae",
+  "genus": "Caryota",
+  "native_region": "Tropical Asia",
+  "habitat": "Moist evergreen forests of peninsular India and Northeast India",
+  "growth_form": "Palm",
+  "ecological_importance": "Provides nesting and roosting sites for canopy birds. Flowers offer abundant nectar for bees and bats. Ripe fruits are eaten by civets, bats, and monkeys.",
+  "conservation_status": "Least Concern (LC)",
+  "threats": [
+    "Over-tapping for palm wine (toddy)",
+    "Destruction of wet forest habitats"
+  ],
+  "conservation_actions": [
+    "Conservation in botanical gardens",
+    "Sustainable harvesting regulation",
+    "Native palm restoration programs"
+  ],
+  "field_identification_notes": [
+    "Unmistakable bipinnate leaves with wedge-shaped, fishtail-like leaflets.",
+    "Ringed trunk with prominent leaf scar bands.",
+    "Cascading, rope-like flower clusters hanging from the upper stem nodes."
+  ],
+  "ml_relevance": "Bipinnate fronds with jagged, wedge-shaped 'fishtail' leaflets provide a unique high-confidence visual signature for computer vision models.",
+  "ar_information": {
+    "quick_identification": "Bipinnate fronds with jagged, fishtail-shaped leaflets; ringed grey trunk.",
+    "ecological_importance": "Supports nectar-feeding insects and arboreal frugivores.",
+    "conservation_message": "Least Concern (LC). This palm is monocarpic-it flowers sequentially from top to bottom over several years before dying."
+  },
+  "vit_campus_relevance": {
+    "status": "CONFIRMED",
+    "location": "Campus botanical gardens and landscaping zones",
+    "verification_required": false
+  },
+  "confidence_level": "High",
+  "sources": [
+    {
+      "source_id": "SRC01",
+      "source_name": "POWO"
+    },
+    {
+      "source_id": "SRC02",
+      "source_name": "IUCN Red List"
+    }
+  ],
+  "last_verified": "2026-09-02"
+}

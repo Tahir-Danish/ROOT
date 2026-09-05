@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.UI;
+using TeamCero.Data.SpeciesKnowledge;
 
 public enum AppScreenState
 {
@@ -45,6 +46,11 @@ public class AppNavigationShell : MonoBehaviour
 
     public AppScreenState CurrentScreen => _currentScreen;
     public string CurrentSpeciesId => _currentSpeciesId;
+
+    [SerializeField] private string _canonicalSpeciesId = "";
+    public string CanonicalSpeciesId => _canonicalSpeciesId;
+
+    public SpeciesKnowledgeRecord CurrentRecord { get; private set; }
 
     public event Action<AppScreenState> OnScreenChanged;
     public event Action<string> OnPlantDetailsOpened;
@@ -132,7 +138,10 @@ public class AppNavigationShell : MonoBehaviour
             speciesId = "unknown_plant";
         }
         _currentSpeciesId = speciesId;
-        Debug.Log($"[AppNavigationShell] Navigating to PLANT DETAILS with speciesId: '{_currentSpeciesId}'");
+        _canonicalSpeciesId = SpeciesKnowledgeAdapter.ResolveCanonicalId(speciesId);
+        CurrentRecord = SpeciesKnowledgeAdapter.GetRecordForSpecies(speciesId);
+
+        Debug.Log($"[AppNavigationShell] Navigating to PLANT DETAILS with speciesId: '{_currentSpeciesId}' (canonical: '{_canonicalSpeciesId}')");
 
         UpdatePlantDetailsContent(_currentSpeciesId);
         SetScreen(AppScreenState.PlantDetails);
@@ -174,13 +183,21 @@ public class AppNavigationShell : MonoBehaviour
 
     /// <summary>
     /// Updates the minimal Plant Details placeholder text with the active species context.
+    /// Sources botanical facts from authoritative SpeciesKnowledgeRecord.
     /// </summary>
     private void UpdatePlantDetailsContent(string speciesId)
     {
         string commonName = "Unknown Species";
         string scientificName = "Plantae";
 
-        if (MockSpeciesDatabase.TryGetSpeciesData(speciesId, out SpeciesData data))
+        if (CurrentRecord != null)
+        {
+            commonName = (CurrentRecord.common_names != null && CurrentRecord.common_names.Count > 0)
+                ? CurrentRecord.common_names[0]
+                : (!string.IsNullOrEmpty(CurrentRecord.accepted_name) ? CurrentRecord.accepted_name : "Unknown Species");
+            scientificName = !string.IsNullOrEmpty(CurrentRecord.scientific_name) ? CurrentRecord.scientific_name : "Plantae";
+        }
+        else if (MockSpeciesDatabase.TryGetSpeciesData(speciesId, out SpeciesData data))
         {
             if (!string.IsNullOrEmpty(data.commonName) && data.commonName != "Data Unavailable")
             {
@@ -198,7 +215,15 @@ public class AppNavigationShell : MonoBehaviour
         }
         if (detailsSpeciesIdText != null)
         {
-            detailsSpeciesIdText.text = $"Species ID:\n{speciesId}";
+            // Show species ID and canonical species ID if distinct
+            if (!string.IsNullOrEmpty(_canonicalSpeciesId) && _canonicalSpeciesId != "UNKNOWN" && _canonicalSpeciesId != speciesId)
+            {
+                detailsSpeciesIdText.text = $"Species ID:\n{speciesId} ({_canonicalSpeciesId})";
+            }
+            else
+            {
+                detailsSpeciesIdText.text = $"Species ID:\n{speciesId}";
+            }
         }
         if (detailsCommonNameText != null)
         {
@@ -212,18 +237,14 @@ public class AppNavigationShell : MonoBehaviour
 
     /// <summary>
     /// Called when an ARSpeciesCard is anchored or active in the spatial scene.
-    /// Activates the screen-space Explore banner for high accessibility.
+    /// Activates the active species context. Explore action is hosted directly on the AR card.
     /// </summary>
     public void NotifyActiveCardAvailable(string speciesId)
     {
         _currentSpeciesId = speciesId;
         if (arExploreBanner != null)
         {
-            arExploreBanner.SetActive(true);
-            if (arExploreBannerText != null)
-            {
-                arExploreBannerText.text = $"Explore: {speciesId}";
-            }
+            arExploreBanner.SetActive(false);
         }
     }
 

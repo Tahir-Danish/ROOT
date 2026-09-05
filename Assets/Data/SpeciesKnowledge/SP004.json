@@ -1,0 +1,62 @@
+{
+  "species_id": "SP004",
+  "scientific_name": "Mimusops elengi L.",
+  "accepted_name": "Mimusops elengi L.",
+  "taxonomic_status": "Accepted",
+  "synonyms": [
+    "Imbricaria elengi (L.) Poir."
+  ],
+  "common_names": [
+    "Spanish Cherry",
+    "Bullet Wood",
+    "Medlar",
+    "Bakul",
+    "Maulsari",
+    "Magizhagam",
+    "Magizham"
+  ],
+  "family": "Sapotaceae",
+  "genus": "Mimusops",
+  "native_region": "Tropical Asia",
+  "habitat": "Moist deciduous forests; cultivated in temple gardens and avenues",
+  "growth_form": "Tree",
+  "ecological_importance": "Flowers attract numerous bees, butterflies, and nectar-feeding birds. Ripe fruits are consumed by fruit bats, squirrels, and arboreal birds, which act as seed dispersers.",
+  "conservation_status": "Least Concern (LC)",
+  "threats": [
+    "Habitat loss in native evergreen forests",
+    "Over-harvesting of heartwood"
+  ],
+  "conservation_actions": [
+    "Urban forestry plantation programs",
+    "Sacred grove protection",
+    "Nursery propagation"
+  ],
+  "field_identification_notes": [
+    "Dark green, glossy, elliptic leaves with wavy margins.",
+    "Intensely sweet, lingering fragrance from small star-shaped white flowers scattered under the canopy.",
+    "Ovoid yellow-orange edible fruits and rough dark grey bark."
+  ],
+  "ml_relevance": "Glossy, dark green, elliptic leaves with characteristic wavy margins and star-shaped floral morphology.",
+  "ar_information": {
+    "quick_identification": "Glossy wavy leaves; small, highly fragrant star-shaped white flowers; orange-yellow berries.",
+    "ecological_importance": "Provides nectar for insects and nutritious fruit for bats and birds.",
+    "conservation_message": "Least Concern (LC). Dried flowers retain their sweet scent for months and are traditionally used in potpourri and garlands."
+  },
+  "vit_campus_relevance": {
+    "status": "CONFIRMED",
+    "location": "Main campus pathways and administrative lawns",
+    "verification_required": false
+  },
+  "confidence_level": "High",
+  "sources": [
+    {
+      "source_id": "SRC01",
+      "source_name": "POWO"
+    },
+    {
+      "source_id": "SRC02",
+      "source_name": "IUCN Red List"
+    }
+  ],
+  "last_verified": "2026-09-02"
+}

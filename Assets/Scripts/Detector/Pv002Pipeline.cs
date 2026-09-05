@@ -17,6 +17,8 @@ public class Pv002Pipeline : MonoBehaviour
 
     [Header("Perception")]
     public PerceptionStateMachine stateMachine;
+    [Tooltip("Reference to ARUXManager for target-level suppression.")]
+    public ARUXManager uxManager;
 
     [System.Serializable]
     public class DetectionUpdateEvent : UnityEvent<DetectionResult> { }
@@ -76,6 +78,11 @@ public class Pv002Pipeline : MonoBehaviour
             stateMachine = UnityEngine.Object.FindAnyObjectByType<PerceptionStateMachine>();
         }
 
+        if (uxManager == null)
+        {
+            uxManager = UnityEngine.Object.FindAnyObjectByType<ARUXManager>();
+        }
+
         try
         {
             if (localizerModelAsset != null)
@@ -107,6 +114,9 @@ public class Pv002Pipeline : MonoBehaviour
         if (_cameraTexture != null) Destroy(_cameraTexture);
     }
 
+    public int M2InferenceCount { get; private set; } = 0;
+    public void ResetM2InferenceCount() => M2InferenceCount = 0;
+
     private void OnCameraFrameReceived(ARCameraFrameEventArgs args)
     {
         if (args.displayMatrix.HasValue)
@@ -116,6 +126,12 @@ public class Pv002Pipeline : MonoBehaviour
 
         if (!_isRunning || _inferenceInProgress) return;
         if (Time.time - _lastInferenceTime < inferenceInterval) return;
+
+        // Pause ML camera inference if not in active AR view (e.g. while viewing Plant Details)
+        if (AppNavigationShell.Instance != null && AppNavigationShell.Instance.CurrentScreen != AppScreenState.AR)
+        {
+            return;
+        }
 
         if (!_cameraManager.TryAcquireLatestCpuImage(out XRCpuImage cpuImage))
             return;
@@ -161,11 +177,11 @@ public class Pv002Pipeline : MonoBehaviour
 
             // --- 4. Model 1 NMS & Postprocess ---
             swStage.Restart();
-            var bestBox = DecodeAndNMS(outputData1, _cameraTexture.width, _cameraTexture.height);
+            var candidateBoxes = DecodeAndNMSAll(outputData1, _cameraTexture.width, _cameraTexture.height);
             swStage.Stop();
             timeNMS = swStage.ElapsedMilliseconds;
 
-            if (bestBox == null)
+            if (candidateBoxes == null || candidateBoxes.Count == 0)
             {
                 SubmitNoPlant();
                 swTotal.Stop();
@@ -173,9 +189,58 @@ public class Pv002Pipeline : MonoBehaviour
                 yield break; // Exit early, no plant detected
             }
 
+            BoundingBox? targetBoxForM2 = null;
+            BoundingBox primaryBox = candidateBoxes[0];
+            string lockedSpeciesFound = null;
+            float lockedConfidence = 1.0f;
+
+            if (uxManager != null)
+            {
+                for (int i = 0; i < candidateBoxes.Count; i++)
+                {
+                    var box = candidateBoxes[i];
+                    Rect screenRect = MapBoxToScreen(box, _cameraTexture.width, _cameraTexture.height);
+
+                    if (uxManager.TryGetLockedTargetForScreenRect(screenRect, out string lockedSpecies, out float conf))
+                    {
+                        if (string.IsNullOrEmpty(lockedSpeciesFound))
+                        {
+                            lockedSpeciesFound = lockedSpecies;
+                            lockedConfidence = conf;
+                            primaryBox = box;
+                        }
+                    }
+                    else
+                    {
+                        // Unclassified candidate found! Eligible for M2 classification.
+                        if (targetBoxForM2 == null)
+                        {
+                            targetBoxForM2 = box;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                targetBoxForM2 = primaryBox;
+            }
+
+            // TARGET-LEVEL ML LOCK SUPPRESSION:
+            // If all detected candidates correspond to already locked targets, skip M2 entirely!
+            if (targetBoxForM2 == null && !string.IsNullOrEmpty(lockedSpeciesFound))
+            {
+                Debug.Log($"[Pv002] Locked target detected ({lockedSpeciesFound}). Skipping M2 inference.");
+                SubmitDetection(lockedSpeciesFound, lockedConfidence, "identified", primaryBox);
+                swTotal.Stop();
+                LogTimings(timeM1, timeNMS, 0, 0, swTotal.ElapsedMilliseconds);
+                yield break;
+            }
+
+            BoundingBox boxToClassify = targetBoxForM2 ?? primaryBox;
+
             // --- 5. Model 2 Crop & Preprocess ---
             swStage.Restart();
-            inputTensor2 = PrepareModel2Input(bestBox.Value);
+            inputTensor2 = PrepareModel2Input(boxToClassify);
             swStage.Stop();
             timeCrop = swStage.ElapsedMilliseconds;
 
@@ -190,8 +255,9 @@ public class Pv002Pipeline : MonoBehaviour
 
             // --- 6. Model 2 Inference ---
             swStage.Restart();
+            M2InferenceCount++;
             _worker2.Schedule(inputTensor2);
-            outputTensor2 = _worker2.PeekOutput("probabilities") as Tensor<float>;
+            outputTensor2 = _worker2.PeekOutput("output0") as Tensor<float>;
             outputTensor2.ReadbackRequest();
 
             while (!outputTensor2.IsReadbackRequestDone())
@@ -203,7 +269,7 @@ public class Pv002Pipeline : MonoBehaviour
             timeM2 = swStage.ElapsedMilliseconds;
 
             // --- 7. Model 2 Postprocess & Acceptance ---
-            ProcessModel2Output(outputData2, bestBox.Value);
+            ProcessModel2Output(outputData2, boxToClassify);
             swTotal.Stop();
             
             LogTimings(timeM1, timeNMS, timeCrop, timeM2, swTotal.ElapsedMilliseconds);
@@ -300,7 +366,7 @@ public class Pv002Pipeline : MonoBehaviour
         return tensor;
     }
 
-    private BoundingBox? DecodeAndNMS(float[] output, int origW, int origH)
+    public List<BoundingBox> DecodeAndNMSAll(float[] output, int origW, int origH)
     {
         const int numPredictions = 8400;
         float confidenceThreshold = 0.40f;
@@ -344,7 +410,7 @@ public class Pv002Pipeline : MonoBehaviour
 
         Debug.Log($"[Pv002] M1 Diagnostic: {rawDetections.Count} boxes > threshold, Max Conf: {maxObservedConf:F4}");
 
-        if (rawDetections.Count == 0) return null;
+        if (rawDetections.Count == 0) return new List<BoundingBox>();
 
         // Apply NMS
         rawDetections.Sort((a, b) => b.confidence.CompareTo(a.confidence));
@@ -364,12 +430,13 @@ public class Pv002Pipeline : MonoBehaviour
             if (keep) nmsResults.Add(box);
         }
 
-        if (nmsResults.Count > 0)
-        {
-            return nmsResults[0]; // Single highest-confidence surviving detection
-        }
+        return nmsResults;
+    }
 
-        return null;
+    public BoundingBox? DecodeAndNMS(float[] output, int origW, int origH)
+    {
+        var all = DecodeAndNMSAll(output, origW, origH);
+        return all.Count > 0 ? all[0] : (BoundingBox?)null;
     }
 
     private float ComputeIoU(BoundingBox a, BoundingBox b)
@@ -447,16 +514,35 @@ public class Pv002Pipeline : MonoBehaviour
         return tensor;
     }
 
-    private void ProcessModel2Output(float[] output, BoundingBox box)
+    private void ProcessModel2Output(float[] logits, BoundingBox box)
     {
+        // V6.1 model outputs raw unnormalized logits [1,10]. Apply numerically stable Softmax.
+        float maxLogit = float.NegativeInfinity;
+        for (int i = 0; i < CLASSES.Length; i++)
+        {
+            if (logits[i] > maxLogit)
+            {
+                maxLogit = logits[i];
+            }
+        }
+
+        float sumExp = 0f;
+        float[] probabilities = new float[CLASSES.Length];
+        for (int i = 0; i < CLASSES.Length; i++)
+        {
+            probabilities[i] = Mathf.Exp(logits[i] - maxLogit);
+            sumExp += probabilities[i];
+        }
+
         float maxProb = -1f;
         int maxIndex = -1;
 
         for (int i = 0; i < CLASSES.Length; i++)
         {
-            if (output[i] > maxProb)
+            probabilities[i] /= sumExp;
+            if (probabilities[i] > maxProb)
             {
-                maxProb = output[i];
+                maxProb = probabilities[i];
                 maxIndex = i;
             }
         }

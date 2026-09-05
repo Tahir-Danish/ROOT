@@ -26,6 +26,8 @@ public class ARUXManager : MonoBehaviour
         public string pendingSpeciesId;
         public int pendingSpeciesObservationCount;
         public float lastPendingSpeciesObservationTime;
+        public float confidence = 1.0f;
+        public bool isLocked = true;
 
         public Vector3 WorldPosition => arAnchor != null ? arAnchor.transform.position : initialAnchorPosition;
     }
@@ -189,7 +191,7 @@ public class ARUXManager : MonoBehaviour
 
             // Check if existing card is locked against fluctuations (immutable for anchor lifetime)
             bool isConfirmedKnown = !string.IsNullOrEmpty(existingTarget.speciesId) && existingTarget.speciesId != "unknown_plant";
-            bool isLocked = isConfirmedKnown || (existingTarget.cardComponent != null && existingTarget.cardComponent.IsIdentityLocked);
+            bool isLocked = existingTarget.isLocked || isConfirmedKnown || (existingTarget.cardComponent != null && existingTarget.cardComponent.IsIdentityLocked);
 
             if (isLocked)
             {
@@ -366,6 +368,14 @@ public class ARUXManager : MonoBehaviour
         string confirmedSpeciesId = _currentCandidate.speciesId;
         _currentCandidate = null; // Clear candidate after qualification
 
+        // Final spatial deduplication check prior to anchor & card instantiation
+        AnchoredTarget finalDupCheck = FindClosestTarget(confirmedPose.position, spatialDeduplicationRadius);
+        if (finalDupCheck != null)
+        {
+            Debug.LogWarning($"[ARUXManager] Duplicate card creation suppressed! Existing target already at {finalDupCheck.WorldPosition}, distance to candidate={Vector3.Distance(confirmedPose.position, finalDupCheck.WorldPosition):F3}m <= {spatialDeduplicationRadius:F2}m");
+            return;
+        }
+
         Debug.Log($"[ARUXManager] Raycast HIT for CONFIRMED target: mask={raycastMask}, count={_raycastHits.Count}, trackable={confirmedPlaneId}, pose={confirmedPose}, distance={hitDistance:F2}m");
 
         ARAnchor newARAnchor = null;
@@ -426,7 +436,9 @@ public class ARUXManager : MonoBehaviour
             cardInstance = cardInstance,
             cardComponent = cardComponent,
             speciesId = confirmedSpeciesId,
-            initialAnchorPosition = confirmedPose.position
+            initialAnchorPosition = confirmedPose.position,
+            confidence = result.confidence > 0f ? result.confidence : 1.0f,
+            isLocked = true
         };
         _anchoredTargets.Add(targetEntry);
 
@@ -446,7 +458,7 @@ public class ARUXManager : MonoBehaviour
     /// Searches existing anchored targets for one within maxDistance of worldPos.
     /// Also prunes any targets whose anchor or card was destroyed externally.
     /// </summary>
-    private AnchoredTarget FindClosestTarget(Vector3 worldPos, float maxDistance)
+    public AnchoredTarget FindClosestTarget(Vector3 worldPos, float maxDistance)
     {
         AnchoredTarget closest = null;
         float closestDist = maxDistance;
@@ -469,6 +481,93 @@ public class ARUXManager : MonoBehaviour
         }
 
         return closest;
+    }
+
+    /// <summary>
+    /// Checks whether a screen coordinate raycasts onto a spatial position associated
+    /// with an existing persistent anchored target that is identity-locked.
+    /// Uses ONLY the existing genuine AR spatial anchor / persistent-target infrastructure.
+    /// </summary>
+    public bool TryGetLockedTargetAtScreenPoint(Vector2 screenPoint, out string lockedSpeciesId, out float confidence)
+    {
+        lockedSpeciesId = null;
+        confidence = 1.0f;
+
+        if (raycastManager == null || _anchoredTargets.Count == 0)
+        {
+            return false;
+        }
+
+        TrackableType raycastMask = TrackableType.PlaneWithinPolygon | TrackableType.PlaneWithinBounds;
+        if (raycastManager.Raycast(screenPoint, _raycastHits, raycastMask) && _raycastHits.Count > 0)
+        {
+            Pose hitPose = _raycastHits[0].pose;
+            AnchoredTarget target = FindClosestTarget(hitPose.position, spatialDeduplicationRadius);
+            if (target != null)
+            {
+                bool isConfirmedKnown = !string.IsNullOrEmpty(target.speciesId) && target.speciesId != "unknown_plant";
+                bool isLocked = target.isLocked || isConfirmedKnown || (target.cardComponent != null && target.cardComponent.IsIdentityLocked);
+                if (isLocked)
+                {
+                    lockedSpeciesId = target.speciesId;
+                    confidence = target.confidence;
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Checks whether a detected candidate bounding box in screen coordinates corresponds
+    /// to an already-locked spatial target.
+    /// Uses AR plane raycasting at candidate sample points (bottom-center, center, lower quarter)
+    /// evaluated against spatialDeduplicationRadius.
+    /// </summary>
+    public bool TryGetLockedTargetForScreenRect(Rect screenRect, out string lockedSpeciesId, out float confidence)
+    {
+        Vector2[] samplePoints = new Vector2[]
+        {
+            new Vector2(screenRect.center.x, screenRect.yMin),
+            screenRect.center,
+            new Vector2(screenRect.center.x, Mathf.Lerp(screenRect.yMin, screenRect.center.y, 0.5f))
+        };
+
+        foreach (var pt in samplePoints)
+        {
+            if (TryGetLockedTargetAtScreenPoint(pt, out lockedSpeciesId, out confidence))
+            {
+                return true;
+            }
+        }
+
+        lockedSpeciesId = null;
+        confidence = 1.0f;
+        return false;
+    }
+
+    /// <summary>
+    /// Checks whether a 3D world position is within spatialDeduplicationRadius of an existing locked target.
+    /// </summary>
+    public bool TryGetLockedTargetAtWorldPosition(Vector3 worldPos, out string lockedSpeciesId, out float confidence)
+    {
+        lockedSpeciesId = null;
+        confidence = 1.0f;
+
+        AnchoredTarget target = FindClosestTarget(worldPos, spatialDeduplicationRadius);
+        if (target != null)
+        {
+            bool isConfirmedKnown = !string.IsNullOrEmpty(target.speciesId) && target.speciesId != "unknown_plant";
+            bool isLocked = target.isLocked || isConfirmedKnown || (target.cardComponent != null && target.cardComponent.IsIdentityLocked);
+            if (isLocked)
+            {
+                lockedSpeciesId = target.speciesId;
+                confidence = target.confidence;
+                return true;
+            }
+        }
+        return false;
     }
 
     /// <summary>

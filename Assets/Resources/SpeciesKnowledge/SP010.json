@@ -1,0 +1,57 @@
+{
+  "species_id": "SP010",
+  "scientific_name": "Gardenia jasminoides J. Ellis",
+  "accepted_name": "Gardenia jasminoides J. Ellis",
+  "taxonomic_status": "Accepted",
+  "synonyms": [
+    "Gardenia florida L."
+  ],
+  "common_names": [
+    "Cape Jasmine",
+    "Gardenia",
+    "Cape Jessamine",
+    "Gandharaj",
+    "Nandiyavattam"
+  ],
+  "family": "Rubiaceae",
+  "genus": "Gardenia",
+  "native_region": "East Asia (Southern China, Japan, Vietnam)",
+  "habitat": "Widely cultivated in gardens and nurseries across India",
+  "growth_form": "Shrub",
+  "ecological_importance": "Fragrant flowers attract nocturnal and diurnal moths and butterflies. Berries serve as occasional food sources for small frugivorous birds.",
+  "conservation_status": "Least Concern / Widely Cultivated",
+  "threats": [
+    "None significant due to global horticultural propagation."
+  ],
+  "conservation_actions": [
+    "Maintained in campus botanical collections."
+  ],
+  "field_identification_notes": [
+    "Intensely glossy, dark green, leathery leaves with prominent parallel veins.",
+    "Large, waxy, pristine white flowers with an overwhelmingly sweet, rich fragrance.",
+    "Dense, compact shrub architecture."
+  ],
+  "ml_relevance": "Extremely glossy, dark green opposite leaves and waxy white flowers.",
+  "ar_information": {
+    "quick_identification": "Glossy dark green leaves; large waxy white flowers with sweet fragrance; ribbed orange fruits.",
+    "ecological_importance": "Sweet-scented blooms attract specialized pollinators.",
+    "conservation_message": "Least Concern / Widely Cultivated. The fruit has been used for centuries across Asia as a natural yellow-gold dye source for textiles and food."
+  },
+  "vit_campus_relevance": {
+    "status": "CONFIRMED",
+    "location": "Campus administrative gardens and faculty quarters",
+    "verification_required": false
+  },
+  "confidence_level": "High",
+  "sources": [
+    {
+      "source_id": "SRC01",
+      "source_name": "POWO"
+    },
+    {
+      "source_id": "SRC02",
+      "source_name": "World Flora Online"
+    }
+  ],
+  "last_verified": "2026-09-02"
+}

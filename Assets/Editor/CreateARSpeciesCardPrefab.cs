@@ -298,8 +298,8 @@ public class CreateARSpeciesCardPrefab
         // Sub-panel quadrant backing cards for clean modular organization
         CreateQuadrantBacking(bgObj, "QuadBacking_TL", 20, -148, 280, 95, roundedSprite);
         CreateQuadrantBacking(bgObj, "QuadBacking_TR", 320, -148, 280, 95, roundedSprite);
-        CreateQuadrantBacking(bgObj, "QuadBacking_BL", 20, -252, 280, 110, roundedSprite);
-        CreateQuadrantBacking(bgObj, "QuadBacking_BR", 320, -252, 280, 110, roundedSprite);
+        CreateQuadrantBacking(bgObj, "QuadBacking_BL", 20, -252, 280, 84, roundedSprite);
+        CreateQuadrantBacking(bgObj, "QuadBacking_BR", 320, -252, 280, 84, roundedSprite);
 
         // Top-Left: PLANT FAMILY (Spec Field 3)
         Text familyLabel = CreateText(bgObj, "FamilyLabel", "PLANT FAMILY", 10, FontStyle.Bold, TextAnchor.UpperLeft, uiFont);
@@ -328,7 +328,7 @@ public class CreateARSpeciesCardPrefab
         ecoValue.color = new Color(0.88f, 0.91f, 0.94f, 1f);
         ecoValue.horizontalOverflow = HorizontalWrapMode.Wrap;
         ecoValue.verticalOverflow = VerticalWrapMode.Truncate;
-        SetRect(ecoValue, 32, -278, 260, 78);
+        SetRect(ecoValue, 32, -278, 260, 52);
 
         // Bottom-Right: CONSERVATION STATUS (Spec Field 6)
         Text consLabel = CreateText(bgObj, "ConsLabel", "CONSERVATION STATUS", 10, FontStyle.Bold, TextAnchor.UpperLeft, uiFont);
@@ -338,7 +338,36 @@ public class CreateARSpeciesCardPrefab
         Text consValue = CreateText(bgObj, "ConsValue", "Least Concern (IUCN)", 14, FontStyle.Bold, TextAnchor.UpperLeft, uiFont);
         consValue.color = new Color(0.22f, 0.74f, 0.97f, 1f); // Sky blue #38BDF8 accent
         consValue.horizontalOverflow = HorizontalWrapMode.Wrap;
-        SetRect(consValue, 332, -278, 260, 78);
+        SetRect(consValue, 332, -278, 260, 52);
+
+        // 9.5 Explore Action Button (Full-width sleek bottom bar)
+        GameObject exploreObj = new GameObject("ExploreButton");
+        exploreObj.transform.SetParent(bgObj.transform, false);
+        RectTransform exploreRt = exploreObj.AddComponent<RectTransform>();
+        exploreRt.anchorMin = new Vector2(0.5f, 1f);
+        exploreRt.anchorMax = new Vector2(0.5f, 1f);
+        exploreRt.pivot = new Vector2(0.5f, 1f);
+        exploreRt.anchoredPosition = new Vector2(0, -342);
+        exploreRt.sizeDelta = new Vector2(580, 28);
+
+        Image exploreImg = exploreObj.AddComponent<Image>();
+        exploreImg.color = new Color(0.10f, 0.55f, 0.48f, 0.95f); // Botanical teal
+        if (roundedSprite != null)
+        {
+            exploreImg.sprite = roundedSprite;
+            exploreImg.type = Image.Type.Sliced;
+        }
+
+        Button exploreBtn = exploreObj.AddComponent<Button>();
+        ColorBlock btnColors = exploreBtn.colors;
+        btnColors.normalColor = new Color(0.10f, 0.55f, 0.48f, 0.95f);
+        btnColors.highlightedColor = new Color(0.14f, 0.70f, 0.60f, 1.0f);
+        btnColors.pressedColor = new Color(0.08f, 0.42f, 0.36f, 1.0f);
+        exploreBtn.colors = btnColors;
+
+        Text exploreText = CreateText(exploreObj, "ExploreText", "EXPLORE SPECIES DETAILS →", 12, FontStyle.Bold, TextAnchor.MiddleCenter, uiFont);
+        exploreText.color = Color.white;
+        StretchFull(exploreText.GetComponent<RectTransform>());
 
         // 10. Wire ARSpeciesCard Component
         speciesCard.plaqueVisual = plaqueVisual.transform;
@@ -351,6 +380,7 @@ public class CreateARSpeciesCardPrefab
         speciesCard.nativeRegionText = regionValue;
         speciesCard.ecoImportanceText = ecoValue;
         speciesCard.conservationStatusText = consValue;
+        speciesCard.exploreButton = exploreBtn;
         speciesCard.collapsedView = bgObj;
         speciesCard.expandedView = null;
         speciesCard.baseScale = 0.00040f;

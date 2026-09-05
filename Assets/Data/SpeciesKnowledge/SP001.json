@@ -1,0 +1,73 @@
+{
+  "species_id": "SP001",
+  "scientific_name": "Alstonia scholaris (L.) R. Br.",
+  "accepted_name": "Alstonia scholaris (L.) R. Br.",
+  "taxonomic_status": "Accepted",
+  "synonyms": [
+    "Echites scholaris L.",
+    "Alyxia scholaris (L.) Mart."
+  ],
+  "common_names": [
+    "Blackboard Tree",
+    "Devil Tree",
+    "Scholar Tree",
+    "Milkwood Pine",
+    "Saptaparni",
+    "Saptacharna",
+    "Chhatwan",
+    "Palai",
+    "Ezhililaippalai"
+  ],
+  "family": "Apocynaceae",
+  "genus": "Alstonia",
+  "native_region": "Tropical and subtropical Asia",
+  "habitat": "Throughout moist and dry deciduous forests, plains, and foothills",
+  "growth_form": "Tree",
+  "ecological_importance": "Nectar source for bees, butterflies, and various insect pollinators; dense canopy provides nesting sites and roosting cover for avifauna.",
+  "conservation_status": "Least Concern (LC)",
+  "threats": [
+    "Overexploitation for traditional medicine (bark)",
+    "Habitat fragmentation",
+    "Removal for urban expansion"
+  ],
+  "conservation_actions": [
+    "Campus preservation",
+    "Urban tree inventorying",
+    "Propagation in institutional nurseries",
+    "Public education on traditional/ecological value"
+  ],
+  "field_identification_notes": [
+    "Whorled leaves (typically 6-7 leaves radiating from a single node).",
+    "Abundant bitter white latex exuded from broken petioles or bark.",
+    "Rough, corky, deeply fissured grayish bark.",
+    "Slender, dangling, bean-like paired follicles in mature trees.",
+    "Strong, sweet-heavy fragrance during flowering season (October-December)."
+  ],
+  "ml_relevance": "Whorled leaf arrangement at nodes is the single most diagnostic computer vision feature for distinguishing A. scholaris from other avenue trees.",
+  "ar_information": {
+    "quick_identification": "Whorled leaves in clusters of 6-7; milky latex; rough corky bark; slender hanging pods.",
+    "ecological_importance": "Nectar-rich flowers support diverse insect pollinators; dense shade provider.",
+    "conservation_message": "Least Concern (LC). The specific epithet scholaris refers to its historical use in manufacturing wooden writing slates for school children."
+  },
+  "vit_campus_relevance": {
+    "status": "CONFIRMED",
+    "location": "Main academic pathways and faculty residential zones",
+    "verification_required": false
+  },
+  "confidence_level": "High",
+  "sources": [
+    {
+      "source_id": "SRC01",
+      "source_name": "POWO (Plants of the World Online)"
+    },
+    {
+      "source_id": "SRC02",
+      "source_name": "IUCN Red List Assessment"
+    },
+    {
+      "source_id": "SRC03",
+      "source_name": "BSI Flora of India"
+    }
+  ],
+  "last_verified": "2026-09-02"
+}

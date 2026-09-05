@@ -72,7 +72,7 @@ public class Phase2NavigationValidator : MonoBehaviour
         card.PopulateData("05_caryota_urens");
         bool test7a = card.CurrentSpeciesId == "05_caryota_urens";
         card.ToggleExplore();
-        bool test7b = nav.CurrentScreen == AppScreenState.PlantDetails && nav.CurrentSpeciesId == "05_caryota_urens";
+        bool test7b = nav.CurrentScreen == AppScreenState.PlantDetails && (nav.CurrentSpeciesId == "05_caryota_urens" || nav.CurrentSpeciesId == "SP005");
         Debug.Log($"[TEST 7] ARSpeciesCard.ToggleExplore bridge to Plant Details: {(test7a && test7b ? "PASS" : "FAIL")}");
 
         // Test 8: Clean return from card explore

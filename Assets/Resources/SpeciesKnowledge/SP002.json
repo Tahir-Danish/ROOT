@@ -1,0 +1,60 @@
+{
+  "species_id": "SP002",
+  "scientific_name": "Justicia adhatoda L.",
+  "accepted_name": "Justicia adhatoda L.",
+  "taxonomic_status": "Accepted",
+  "synonyms": [
+    "Adhatoda vasica Nees",
+    "Justicia vasica (Nees)"
+  ],
+  "common_names": [
+    "Malabar Nut",
+    "Adatodai",
+    "Vasaka",
+    "Arasa",
+    "Adusa"
+  ],
+  "family": "Acanthaceae",
+  "genus": "Justicia",
+  "native_region": "Indian Subcontinent, Southeast Asia",
+  "habitat": "Hedges and dry scrub forests; found up to an altitude of 1,300 m",
+  "growth_form": "Shrub",
+  "ecological_importance": "Acts as an important browse-resistant hedge plant, providing microhabitat and refuge for small insects and reptiles. Natural deterrent against herbivores.",
+  "conservation_status": "Least Concern / Not Evaluated",
+  "threats": [
+    "Overharvesting of wild populations for traditional pharmaceutical extraction."
+  ],
+  "conservation_actions": [
+    "Cultivation in herbal medicinal gardens",
+    "Vegetative propagation through stem cuttings",
+    "Habitat preservation"
+  ],
+  "field_identification_notes": [
+    "Opposite, lanceolate leaves with a strong, pungent, medicinal aroma when crushed.",
+    "White bilabiate flowers marked with purple dots on spikes.",
+    "Woody, branching shrub habit found along hedges and dry scrub forests."
+  ],
+  "ml_relevance": "Decussate elliptic-lanceolate leaves and dense terminal white spikes.",
+  "ar_information": {
+    "quick_identification": "Opposite lanceolate leaves with strong pungent smell; white flowers with purple dots.",
+    "ecological_importance": "Resilient shrub; natural herbivore deterrent; supports specialized pollinators.",
+    "conservation_message": "Secure / Least Concern. Used for millennia in Ayurveda as a premier expectorant and respiratory tonic."
+  },
+  "vit_campus_relevance": {
+    "status": "CONFIRMED",
+    "location": "Campus medicinal plant garden and landscaping hedges",
+    "verification_required": false
+  },
+  "confidence_level": "High",
+  "sources": [
+    {
+      "source_id": "SRC01",
+      "source_name": "POWO"
+    },
+    {
+      "source_id": "SRC02",
+      "source_name": "Ayurvedic Pharmacopoeia of India"
+    }
+  ],
+  "last_verified": "2026-09-02"
+}
