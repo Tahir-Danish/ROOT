@@ -22,6 +22,11 @@ public class ARUXManager : MonoBehaviour
         public string speciesId;
         public Vector3 initialAnchorPosition;
 
+        // Reconfirmation state for identity transitions
+        public string pendingSpeciesId;
+        public int pendingSpeciesObservationCount;
+        public float lastPendingSpeciesObservationTime;
+
         public Vector3 WorldPosition => arAnchor != null ? arAnchor.transform.position : initialAnchorPosition;
     }
 
@@ -75,6 +80,9 @@ public class ARUXManager : MonoBehaviour
         public float lastObservationTime;
     }
 
+    public static float? TimeOverride = null;
+    private static float CurrentTime => TimeOverride ?? Time.time;
+
     private SpatialCandidate _currentCandidate = null;
     private float _lastMaxCapLogTime = -1f;
 
@@ -122,9 +130,9 @@ public class ARUXManager : MonoBehaviour
     void Update()
     {
         // Expire stale candidate if no consistent observation occurred within candidateTimeoutWindow
-        if (_currentCandidate != null && (Time.time - _currentCandidate.lastObservationTime > candidateTimeoutWindow))
+        if (_currentCandidate != null && (CurrentTime - _currentCandidate.lastObservationTime > candidateTimeoutWindow))
         {
-            Debug.Log($"[ARUXManager] Spatial candidate at {_currentCandidate.position} timed out after {Time.time - _currentCandidate.lastObservationTime:F2}s without observations.");
+            Debug.Log($"[ARUXManager] Spatial candidate at {_currentCandidate.position} timed out after {CurrentTime - _currentCandidate.lastObservationTime:F2}s without observations.");
             _currentCandidate = null;
         }
     }
@@ -176,14 +184,92 @@ public class ARUXManager : MonoBehaviour
         if (existingTarget != null)
         {
             // SAME PHYSICAL TARGET:
-            // "Existing anchored card world position is immutable after acquisition."
-            // "Detection updates may update the CONTENT of an existing card, but must never update its world position."
-            // "Do not destroy/recreate an anchored card merely because ML confidence changes."
-            if (existingTarget.cardComponent != null && existingTarget.speciesId != result.species_id)
+            // Invariant: Existing anchored card world position is immutable after acquisition.
+            // Detection updates must never move the anchor transform.
+
+            // Check if existing card is locked against fluctuations
+            bool isLocked = existingTarget.cardComponent != null && existingTarget.cardComponent.IsIdentityLocked;
+
+            if (isLocked)
             {
-                Debug.Log($"[ARUXManager] Updating content for existing anchored target (dist={Vector3.Distance(hitPose.position, existingTarget.WorldPosition):F3}m): '{existingTarget.speciesId}' -> '{result.species_id}'");
-                existingTarget.speciesId = result.species_id;
-                existingTarget.cardComponent.PopulateData(result.species_id);
+                // Identity is locked. Ignore incoming candidate fluctuations.
+                if (result.species_id != existingTarget.speciesId && !string.IsNullOrEmpty(result.species_id))
+                {
+                    if (existingTarget.pendingSpeciesId != result.species_id || (CurrentTime - existingTarget.lastPendingSpeciesObservationTime > 1.0f))
+                    {
+                        Debug.Log($"[IdentityLock] IGNORE candidate={result.species_id} locked={existingTarget.speciesId}");
+                        existingTarget.lastPendingSpeciesObservationTime = CurrentTime;
+                        existingTarget.pendingSpeciesId = result.species_id;
+                    }
+                }
+                // Suppress candidate reconfirmation while locked
+                existingTarget.pendingSpeciesObservationCount = 0;
+            }
+            else
+            {
+                // Lock is inactive or expired.
+                // 1. Stable card policy: never degrade a confirmed known species to unknown/empty
+                bool isConfirmedKnown = !string.IsNullOrEmpty(existingTarget.speciesId) && existingTarget.speciesId != "unknown_plant";
+                bool isIncomingUnknown = string.IsNullOrEmpty(result.species_id) || result.species_id == "unknown_plant";
+
+                if (isConfirmedKnown && isIncomingUnknown)
+                {
+                    // Ignore transient unknown state for confirmed card
+                    if (existingTarget.pendingSpeciesId != result.species_id || (CurrentTime - existingTarget.lastPendingSpeciesObservationTime > 1.0f))
+                    {
+                        Debug.Log($"[IdentityLock] IGNORE candidate={result.species_id} locked={existingTarget.speciesId}");
+                        existingTarget.lastPendingSpeciesObservationTime = CurrentTime;
+                        existingTarget.pendingSpeciesId = result.species_id;
+                    }
+                }
+                else if (result.species_id == existingTarget.speciesId)
+                {
+                    // Matches current identity; reset pending candidate
+                    existingTarget.pendingSpeciesId = null;
+                    existingTarget.pendingSpeciesObservationCount = 0;
+                }
+                else if (!string.IsNullOrEmpty(result.species_id))
+                {
+                    // Different species observed! Require candidate confirmation mechanism
+                    // (requiredConfirmationObservations consecutive observations within candidateTimeoutWindow).
+                    if (existingTarget.pendingSpeciesId == result.species_id &&
+                        (CurrentTime - existingTarget.lastPendingSpeciesObservationTime <= candidateTimeoutWindow))
+                    {
+                        existingTarget.pendingSpeciesObservationCount++;
+                        existingTarget.lastPendingSpeciesObservationTime = CurrentTime;
+
+                        if (existingTarget.pendingSpeciesObservationCount >= requiredConfirmationObservations)
+                        {
+                            // NEW IDENTITY CONFIRMED!
+                            Debug.Log($"[IdentityLock] NEW IDENTITY CONFIRMED species={result.species_id} (reconfirmed {existingTarget.pendingSpeciesObservationCount}/{requiredConfirmationObservations})");
+                            existingTarget.speciesId = result.species_id;
+                            existingTarget.pendingSpeciesId = null;
+                            existingTarget.pendingSpeciesObservationCount = 0;
+
+                            if (existingTarget.cardComponent != null)
+                            {
+                                existingTarget.cardComponent.PopulateData(result.species_id);
+                            }
+
+                            if (_currentCardComponent == existingTarget.cardComponent)
+                            {
+                                _anchoredSpeciesId = result.species_id;
+                            }
+                        }
+                        else
+                        {
+                            Debug.Log($"[ARUXManager] Existing target reconfirmation candidate '{result.species_id}' (obs {existingTarget.pendingSpeciesObservationCount}/{requiredConfirmationObservations})");
+                        }
+                    }
+                    else
+                    {
+                        // Initial observation of new candidate for existing target
+                        existingTarget.pendingSpeciesId = result.species_id;
+                        existingTarget.pendingSpeciesObservationCount = 1;
+                        existingTarget.lastPendingSpeciesObservationTime = CurrentTime;
+                        Debug.Log($"[ARUXManager] Existing target candidate '{result.species_id}' initialized (obs 1/{requiredConfirmationObservations})");
+                    }
+                }
             }
 
             // Viewing an already-anchored card cancels any pending unconfirmed candidate
@@ -194,10 +280,10 @@ public class ARUXManager : MonoBehaviour
         // 2. Max Persistent Cards Limit Check:
         if (_anchoredTargets.Count >= maxPersistentCards)
         {
-            if (Time.time - _lastMaxCapLogTime > 2.0f)
+            if (CurrentTime - _lastMaxCapLogTime > 2.0f)
             {
                 Debug.LogWarning($"[ARUXManager] Max persistent cards limit ({maxPersistentCards}) reached. Creation of additional spatial cards suppressed at {hitPose.position}");
-                _lastMaxCapLogTime = Time.time;
+                _lastMaxCapLogTime = CurrentTime;
             }
             _currentCandidate = null;
             return;
@@ -206,9 +292,9 @@ public class ARUXManager : MonoBehaviour
         // 3. TEMPORARY SPATIAL CANDIDATE CONFIRMATION STAGE:
         // Before creating a NEW permanent anchor/card, require repeated consistent observations
         // at approximately the same spatial location (within candidateSpatialRadius) within candidateTimeoutWindow.
-        if (_currentCandidate != null && (Time.time - _currentCandidate.lastObservationTime > candidateTimeoutWindow))
+        if (_currentCandidate != null && (CurrentTime - _currentCandidate.lastObservationTime > candidateTimeoutWindow))
         {
-            Debug.Log($"[ARUXManager] Previous candidate timed out ({Time.time - _currentCandidate.lastObservationTime:F2}s > {candidateTimeoutWindow}s). Resetting candidate.");
+            Debug.Log($"[ARUXManager] Previous candidate timed out ({CurrentTime - _currentCandidate.lastObservationTime:F2}s > {candidateTimeoutWindow}s). Resetting candidate.");
             _currentCandidate = null;
         }
 
@@ -222,8 +308,8 @@ public class ARUXManager : MonoBehaviour
                 lastHitPose = hitPose,
                 speciesId = result.species_id,
                 observationCount = 1,
-                firstObservationTime = Time.time,
-                lastObservationTime = Time.time
+                firstObservationTime = CurrentTime,
+                lastObservationTime = CurrentTime
             };
             Debug.Log($"[ARUXManager] New spatial candidate initialized at {hitPose.position} for species '{result.species_id}' (obs 1/{requiredConfirmationObservations})");
             return;
@@ -236,7 +322,7 @@ public class ARUXManager : MonoBehaviour
         {
             // Consistent observation within spatial tolerance (10-15 cm)
             _currentCandidate.observationCount++;
-            _currentCandidate.lastObservationTime = Time.time;
+            _currentCandidate.lastObservationTime = CurrentTime;
             _currentCandidate.lastHitPose = hitPose;
             _currentCandidate.planeTrackableId = hitTrackableId;
 
@@ -253,7 +339,7 @@ public class ARUXManager : MonoBehaviour
             }
 
             // All required observations verified: CANDIDATE CONFIRMED!
-            Debug.Log($"[ARUXManager] Spatial candidate CONFIRMED after {_currentCandidate.observationCount} observations over {Time.time - _currentCandidate.firstObservationTime:F2}s at {_currentCandidate.position}");
+            Debug.Log($"[ARUXManager] Spatial candidate CONFIRMED after {_currentCandidate.observationCount} observations over {CurrentTime - _currentCandidate.firstObservationTime:F2}s at {_currentCandidate.position}");
         }
         else
         {
@@ -266,8 +352,8 @@ public class ARUXManager : MonoBehaviour
                 lastHitPose = hitPose,
                 speciesId = result.species_id,
                 observationCount = 1,
-                firstObservationTime = Time.time,
-                lastObservationTime = Time.time
+                firstObservationTime = CurrentTime,
+                lastObservationTime = CurrentTime
             };
             return;
         }

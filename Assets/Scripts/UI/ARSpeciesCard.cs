@@ -15,6 +15,43 @@ public class ARSpeciesCard : MonoBehaviour, UnityEngine.EventSystems.IPointerCli
     [SerializeField] private string _currentSpeciesId;
     public string CurrentSpeciesId => _currentSpeciesId;
 
+    [Header("Temporal Identity Lock")]
+    [Tooltip("Duration in seconds for which confirmed species identity is locked against classifier fluctuations.")]
+    public float identityLockDuration = 5.0f;
+
+    [SerializeField] private bool _isIdentityLocked = false;
+    [SerializeField] private float _lockTimestamp = -1f;
+    [SerializeField] private string _lockedSpeciesId = "";
+
+    public static float? TimeOverride = null;
+    private static float CurrentTime => TimeOverride ?? Time.time;
+
+    private string _lastIgnoredCandidate = "";
+    private float _lastIgnoreLogTime = -1f;
+
+    public bool IsIdentityLocked
+    {
+        get
+        {
+            if (!_isIdentityLocked) return false;
+            if (CurrentTime - _lockTimestamp < identityLockDuration) return true;
+
+            // Lock expired
+            _isIdentityLocked = false;
+            Debug.Log($"[IdentityLock] LOCK EXPIRED species={_lockedSpeciesId}");
+            return false;
+        }
+    }
+
+    public string LockedSpeciesId => _lockedSpeciesId;
+    public float RemainingLockDuration => _isIdentityLocked ? Mathf.Max(0f, identityLockDuration - (CurrentTime - _lockTimestamp)) : 0f;
+
+    public void UnlockIdentity()
+    {
+        _isIdentityLocked = false;
+        _lockTimestamp = -1f;
+    }
+
     [Header("Visual & Tether References")]
     [Tooltip("The floating plaque canvas/visual child that billboards and scales.")]
     public Transform plaqueVisual;
@@ -132,9 +169,41 @@ public class ARSpeciesCard : MonoBehaviour, UnityEngine.EventSystems.IPointerCli
     /// <summary>
     /// Populates all six official botanical fields simultaneously from the database.
     /// Supports both confidently identified species and unconfirmed/unknown targets.
+    /// Implements temporal identity lock: while locked, botanical fields and species ID
+    /// cannot be overwritten by subsequent classifier fluctuations.
     /// </summary>
     public void PopulateData(string speciesId)
     {
+        // 1. If currently locked, prevent overwriting confirmed identity
+        if (IsIdentityLocked)
+        {
+            if (speciesId != _lockedSpeciesId)
+            {
+                if (_lastIgnoredCandidate != speciesId || (CurrentTime - _lastIgnoreLogTime > 1.0f))
+                {
+                    Debug.Log($"[IdentityLock] IGNORE candidate={speciesId} locked={_lockedSpeciesId}");
+                    _lastIgnoredCandidate = speciesId;
+                    _lastIgnoreLogTime = CurrentTime;
+                }
+                return;
+            }
+        }
+
+        // 2. Stable card policy: never degrade an already confirmed known species to unknown/empty
+        if (!string.IsNullOrEmpty(_lockedSpeciesId) && _lockedSpeciesId != "unknown_plant")
+        {
+            if (string.IsNullOrEmpty(speciesId) || speciesId == "unknown_plant")
+            {
+                if (_lastIgnoredCandidate != speciesId || (CurrentTime - _lastIgnoreLogTime > 1.0f))
+                {
+                    Debug.Log($"[IdentityLock] IGNORE candidate={speciesId} locked={_lockedSpeciesId}");
+                    _lastIgnoredCandidate = speciesId;
+                    _lastIgnoreLogTime = CurrentTime;
+                }
+                return;
+            }
+        }
+
         _currentSpeciesId = speciesId;
         bool isKnown = MockSpeciesDatabase.TryGetSpeciesData(speciesId, out SpeciesData data);
 
@@ -153,10 +222,19 @@ public class ARSpeciesCard : MonoBehaviour, UnityEngine.EventSystems.IPointerCli
             // Backward compatibility
             SetText(expandedCommonNameText, data.commonName);
             SetText(descriptionText, data.description);
+
+            // Engage temporal identity lock for confirmed species
+            _lockedSpeciesId = speciesId;
+            _lockTimestamp = CurrentTime;
+            _isIdentityLocked = true;
+            Debug.Log($"[IdentityLock] LOCK species={speciesId}");
         }
         else if (isKnown && speciesId == "unknown_plant")
         {
-            // Unconfirmed / Unknown target
+            // Unconfirmed / Unknown target - DO NOT LOCK
+            _lockedSpeciesId = "";
+            _isIdentityLocked = false;
+
             SetStatusBadge("● UNCONFIRMED TARGET", ColorUnknownAmber, ColorUnknownBadgeBg);
 
             SetText(commonNameText, "Unknown Species");
@@ -171,7 +249,10 @@ public class ARSpeciesCard : MonoBehaviour, UnityEngine.EventSystems.IPointerCli
         }
         else
         {
-            // Unknown fallback
+            // Unknown fallback - DO NOT LOCK
+            _lockedSpeciesId = "";
+            _isIdentityLocked = false;
+
             SetStatusBadge("● UNCONFIRMED TARGET", ColorUnknownAmber, ColorUnknownBadgeBg);
 
             SetText(commonNameText, "Unknown Species");
