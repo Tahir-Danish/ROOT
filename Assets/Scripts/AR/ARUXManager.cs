@@ -187,12 +187,13 @@ public class ARUXManager : MonoBehaviour
             // Invariant: Existing anchored card world position is immutable after acquisition.
             // Detection updates must never move the anchor transform.
 
-            // Check if existing card is locked against fluctuations
-            bool isLocked = existingTarget.cardComponent != null && existingTarget.cardComponent.IsIdentityLocked;
+            // Check if existing card is locked against fluctuations (immutable for anchor lifetime)
+            bool isConfirmedKnown = !string.IsNullOrEmpty(existingTarget.speciesId) && existingTarget.speciesId != "unknown_plant";
+            bool isLocked = isConfirmedKnown || (existingTarget.cardComponent != null && existingTarget.cardComponent.IsIdentityLocked);
 
             if (isLocked)
             {
-                // Identity is locked. Ignore incoming candidate fluctuations.
+                // Identity is locked for anchor lifetime. Ignore incoming candidate fluctuations.
                 if (result.species_id != existingTarget.speciesId && !string.IsNullOrEmpty(result.species_id))
                 {
                     if (existingTarget.pendingSpeciesId != result.species_id || (CurrentTime - existingTarget.lastPendingSpeciesObservationTime > 1.0f))
@@ -204,12 +205,13 @@ public class ARUXManager : MonoBehaviour
                 }
                 // Suppress candidate reconfirmation while locked
                 existingTarget.pendingSpeciesObservationCount = 0;
+                _currentCandidate = null;
+                return;
             }
             else
             {
                 // Lock is inactive or expired.
                 // 1. Stable card policy: never degrade a confirmed known species to unknown/empty
-                bool isConfirmedKnown = !string.IsNullOrEmpty(existingTarget.speciesId) && existingTarget.speciesId != "unknown_plant";
                 bool isIncomingUnknown = string.IsNullOrEmpty(result.species_id) || result.species_id == "unknown_plant";
 
                 if (isConfirmedKnown && isIncomingUnknown)

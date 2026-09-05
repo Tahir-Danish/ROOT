@@ -15,12 +15,9 @@ public class ARSpeciesCard : MonoBehaviour, UnityEngine.EventSystems.IPointerCli
     [SerializeField] private string _currentSpeciesId;
     public string CurrentSpeciesId => _currentSpeciesId;
 
-    [Header("Temporal Identity Lock")]
-    [Tooltip("Duration in seconds for which confirmed species identity is locked against classifier fluctuations.")]
-    public float identityLockDuration = 5.0f;
-
+    [Header("Anchor-Lifetime Identity Lock")]
+    [Tooltip("Whether the confirmed species identity is permanently locked for the lifetime of the AR anchor.")]
     [SerializeField] private bool _isIdentityLocked = false;
-    [SerializeField] private float _lockTimestamp = -1f;
     [SerializeField] private string _lockedSpeciesId = "";
 
     public static float? TimeOverride = null;
@@ -29,27 +26,13 @@ public class ARSpeciesCard : MonoBehaviour, UnityEngine.EventSystems.IPointerCli
     private string _lastIgnoredCandidate = "";
     private float _lastIgnoreLogTime = -1f;
 
-    public bool IsIdentityLocked
-    {
-        get
-        {
-            if (!_isIdentityLocked) return false;
-            if (CurrentTime - _lockTimestamp < identityLockDuration) return true;
-
-            // Lock expired
-            _isIdentityLocked = false;
-            Debug.Log($"[IdentityLock] LOCK EXPIRED species={_lockedSpeciesId}");
-            return false;
-        }
-    }
-
+    public bool IsIdentityLocked => _isIdentityLocked;
     public string LockedSpeciesId => _lockedSpeciesId;
-    public float RemainingLockDuration => _isIdentityLocked ? Mathf.Max(0f, identityLockDuration - (CurrentTime - _lockTimestamp)) : 0f;
 
     public void UnlockIdentity()
     {
         _isIdentityLocked = false;
-        _lockTimestamp = -1f;
+        _lockedSpeciesId = "";
     }
 
     [Header("Visual & Tether References")]
@@ -223,9 +206,8 @@ public class ARSpeciesCard : MonoBehaviour, UnityEngine.EventSystems.IPointerCli
             SetText(expandedCommonNameText, data.commonName);
             SetText(descriptionText, data.description);
 
-            // Engage temporal identity lock for confirmed species
+            // Engage identity lock for confirmed species (immutable for anchor lifetime)
             _lockedSpeciesId = speciesId;
-            _lockTimestamp = CurrentTime;
             _isIdentityLocked = true;
             Debug.Log($"[IdentityLock] LOCK species={speciesId}");
         }

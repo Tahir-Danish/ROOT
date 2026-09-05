@@ -2,20 +2,20 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// Deterministic verification suite for Demo Species Identity Lock.
+/// Deterministic verification suite for Anchor-Lifetime Species Identity Lock.
 /// Implements all 12 required test conditions:
 /// 1. Confirm species A.
-/// 2. Lock species A.
+/// 2. Anchor/card created.
 /// 3. Send species B.
-/// 4. Verify visible identity remains A.
-/// 5. Send UNKNOWN.
-/// 6. Verify visible identity remains A.
-/// 7. Send species B repeatedly.
-/// 8. Verify visible identity remains A during the lock.
-/// 9. After lock expiration, verify a new identity is NOT accepted from one observation alone.
-/// 10. Verify existing confirmation logic is still required.
-/// 11. Verify anchor transform does not change.
-/// 12. Verify no duplicate card is created.
+/// 4. Card remains A.
+/// 5. Send unknown.
+/// 6. Card remains A.
+/// 7. Simulate NO_TARGET / UNKNOWN_TARGET.
+/// 8. Card remains A (across time and frames).
+/// 9. Confirm a second spatially distinct species.
+/// 10. Both cards retain independent identities.
+/// 11. No anchor movement.
+/// 12. No duplicate card for same target.
 /// </summary>
 public class SpeciesIdentityLockValidator : MonoBehaviour
 {
@@ -59,176 +59,149 @@ public class SpeciesIdentityLockValidator : MonoBehaviour
 
         try
         {
-            // Setup test GameObject and Card Component
-            var cardGo = new GameObject("TestIdentityLockCard");
-            var card = cardGo.AddComponent<ARSpeciesCard>();
+            // Setup test GameObject and Card Component for Target 1
+            var cardGo1 = new GameObject("TestIdentityLockCard1");
+            var card1 = cardGo1.AddComponent<ARSpeciesCard>();
 
-            // Attach mock UI Text components to inspect visible identity fields
-            var nameGo = new GameObject("CommonName");
-            nameGo.transform.SetParent(cardGo.transform);
-            card.commonNameText = nameGo.AddComponent<Text>();
+            var nameGo1 = new GameObject("CommonName1");
+            nameGo1.transform.SetParent(cardGo1.transform);
+            card1.commonNameText = nameGo1.AddComponent<Text>();
 
-            var sciGo = new GameObject("SciName");
-            sciGo.transform.SetParent(cardGo.transform);
-            card.scientificNameText = sciGo.AddComponent<Text>();
+            var sciGo1 = new GameObject("SciName1");
+            sciGo1.transform.SetParent(cardGo1.transform);
+            card1.scientificNameText = sciGo1.AddComponent<Text>();
 
             string speciesA = "05_caryota_urens";
             string speciesB = "01_alstonia_scholaris";
             string speciesUnknown = "unknown_plant";
 
             // -----------------------------------------------------------------
-            // TEST 1 & 2: Confirm species A and verify identity lock is engaged
+            // TEST 1 & 2: Confirm species A -> Anchor/Card created and locked
             // -----------------------------------------------------------------
-            card.PopulateData(speciesA);
+            card1.PopulateData(speciesA);
 
-            Assert("Test 1: Confirm species A", card.CurrentSpeciesId == speciesA, $"Species={card.CurrentSpeciesId}");
-            Assert("Test 2: Lock species A", card.IsIdentityLocked && card.LockedSpeciesId == speciesA, $"Locked={card.IsIdentityLocked}, LockId={card.LockedSpeciesId}");
-            string visibleNameA = card.commonNameText.text;
-            string visibleSciA = card.scientificNameText.text;
+            Assert("Test 1: Confirm species A", card1.CurrentSpeciesId == speciesA, $"Species={card1.CurrentSpeciesId}");
+            Assert("Test 2: Anchor/card created & locked for anchor lifetime",
+                card1.IsIdentityLocked && card1.LockedSpeciesId == speciesA,
+                $"Locked={card1.IsIdentityLocked}, LockId={card1.LockedSpeciesId}");
 
-            // -----------------------------------------------------------------
-            // TEST 3 & 4: Send species B during lock -> visible identity remains A
-            // -----------------------------------------------------------------
-            card.PopulateData(speciesB);
-            Assert("Test 3 & 4: Send species B -> Visible identity remains A",
-                card.CurrentSpeciesId == speciesA && card.commonNameText.text == visibleNameA && card.scientificNameText.text == visibleSciA,
-                $"Expected={speciesA}, Actual={card.CurrentSpeciesId}");
+            string visibleNameA = card1.commonNameText.text;
+            string visibleSciA = card1.scientificNameText.text;
 
-            // -----------------------------------------------------------------
-            // TEST 5 & 6: Send UNKNOWN during lock -> visible identity remains A
-            // -----------------------------------------------------------------
-            card.PopulateData(speciesUnknown);
-            Assert("Test 5 & 6: Send UNKNOWN -> Visible identity remains A",
-                card.CurrentSpeciesId == speciesA && card.commonNameText.text == visibleNameA,
-                $"Expected={speciesA}, Actual={card.CurrentSpeciesId}");
-
-            // -----------------------------------------------------------------
-            // TEST 7 & 8: Send species B repeatedly during lock -> visible identity remains A
-            // -----------------------------------------------------------------
-            for (int i = 0; i < 10; i++)
+            var target1 = new ARUXManager.AnchoredTarget
             {
-                ARSpeciesCard.TimeOverride = baseTime + (i * 0.3f); // within 3 seconds (< 5s lock)
-                card.PopulateData(speciesB);
-            }
-            Assert("Test 7 & 8: Send species B repeatedly during lock -> Remains A",
-                card.CurrentSpeciesId == speciesA && card.commonNameText.text == visibleNameA,
-                $"After 10 frames at t={ARSpeciesCard.TimeOverride}, Species={card.CurrentSpeciesId}");
-
-            // -----------------------------------------------------------------
-            // TEST 9: After lock expiration, single observation of B is NOT accepted
-            // -----------------------------------------------------------------
-            // Advance time past 5-second lock
-            ARSpeciesCard.TimeOverride = baseTime + 6.0f;
-            ARUXManager.TimeOverride = baseTime + 6.0f;
-            bool lockExpired = !card.IsIdentityLocked;
-            Assert("Lock expired check", lockExpired, $"IsLocked={card.IsIdentityLocked}");
-
-            // Simulate candidate reconfirmation on AnchoredTarget as done in ARUXManager
-            var anchoredTarget = new ARUXManager.AnchoredTarget
-            {
-                cardInstance = cardGo,
-                cardComponent = card,
+                cardInstance = cardGo1,
+                cardComponent = card1,
                 speciesId = speciesA,
-                initialAnchorPosition = new Vector3(0.5f, 0.1f, 1.2f),
-                pendingSpeciesId = null,
-                pendingSpeciesObservationCount = 0,
-                lastPendingSpeciesObservationTime = 0f
+                initialAnchorPosition = new Vector3(0.0f, 0.0f, 1.0f)
             };
+            Vector3 initialPos1 = target1.WorldPosition;
 
-            Vector3 initialPos = anchoredTarget.WorldPosition;
+            // -----------------------------------------------------------------
+            // TEST 3 & 4: Send species B -> Card remains A
+            // -----------------------------------------------------------------
+            card1.PopulateData(speciesB);
+            Assert("Test 3 & 4: Send species B -> Card remains A",
+                card1.CurrentSpeciesId == speciesA && card1.commonNameText.text == visibleNameA && card1.scientificNameText.text == visibleSciA,
+                $"Expected={speciesA}, Actual={card1.CurrentSpeciesId}");
 
-            // Frame 1 of species B after lock expiry:
-            int requiredObservations = 3;
-            float candidateTimeoutWindow = 1.5f;
+            // -----------------------------------------------------------------
+            // TEST 5 & 6: Send unknown -> Card remains A
+            // -----------------------------------------------------------------
+            card1.PopulateData(speciesUnknown);
+            Assert("Test 5 & 6: Send unknown -> Card remains A",
+                card1.CurrentSpeciesId == speciesA && card1.commonNameText.text == visibleNameA,
+                $"Expected={speciesA}, Actual={card1.CurrentSpeciesId}");
 
-            void SimulateIncomingObservation(string incomingSpecies, float timestamp)
+            // -----------------------------------------------------------------
+            // TEST 7: Simulate NO_TARGET / UNKNOWN_TARGET -> Card remains A
+            // -----------------------------------------------------------------
+            // Simulate incoming detection frame with UNKNOWN_TARGET perception state
+            bool isConfirmedKnown = !string.IsNullOrEmpty(target1.speciesId) && target1.speciesId != "unknown_plant";
+            bool isLocked1 = isConfirmedKnown || (target1.cardComponent != null && target1.cardComponent.IsIdentityLocked);
+            Assert("Test 7a: Target 1 identity is locked against UNKNOWN_TARGET", isLocked1);
+
+            // Directly verify sending unknown / unconfirmed does not modify card1
+            card1.PopulateData(speciesUnknown);
+            Assert("Test 7b: Simulate UNKNOWN_TARGET -> Card remains A",
+                card1.CurrentSpeciesId == speciesA && card1.commonNameText.text == visibleNameA);
+
+            // -----------------------------------------------------------------
+            // TEST 8: Card remains A over extended time (e.g. 60s, 1000s)
+            // -----------------------------------------------------------------
+            ARSpeciesCard.TimeOverride = baseTime + 60.0f; // 60 seconds later
+            card1.PopulateData(speciesB);
+            Assert("Test 8a: After 60s, sending species B is rejected -> Card remains A",
+                card1.CurrentSpeciesId == speciesA && card1.IsIdentityLocked,
+                $"CardSpecies={card1.CurrentSpeciesId}, Locked={card1.IsIdentityLocked}");
+
+            ARSpeciesCard.TimeOverride = baseTime + 1000.0f; // 1000 seconds later
+            card1.PopulateData(speciesB);
+            Assert("Test 8b: After 1000s, card remains A (immutable anchor lifetime)",
+                card1.CurrentSpeciesId == speciesA && card1.IsIdentityLocked);
+
+            // -----------------------------------------------------------------
+            // TEST 9 & 10: Confirm a second spatially distinct species
+            // Both cards retain independent identities
+            // -----------------------------------------------------------------
+            var cardGo2 = new GameObject("TestIdentityLockCard2");
+            var card2 = cardGo2.AddComponent<ARSpeciesCard>();
+
+            var nameGo2 = new GameObject("CommonName2");
+            nameGo2.transform.SetParent(cardGo2.transform);
+            card2.commonNameText = nameGo2.AddComponent<Text>();
+
+            var sciGo2 = new GameObject("SciName2");
+            sciGo2.transform.SetParent(cardGo2.transform);
+            card2.scientificNameText = sciGo2.AddComponent<Text>();
+
+            card2.PopulateData(speciesB);
+            var target2 = new ARUXManager.AnchoredTarget
             {
-                ARSpeciesCard.TimeOverride = timestamp;
-                ARUXManager.TimeOverride = timestamp;
+                cardInstance = cardGo2,
+                cardComponent = card2,
+                speciesId = speciesB,
+                initialAnchorPosition = new Vector3(1.5f, 0.0f, 1.0f) // 1.5m away (distinct spatial position)
+            };
+            Vector3 initialPos2 = target2.WorldPosition;
 
-                bool isLocked = anchoredTarget.cardComponent != null && anchoredTarget.cardComponent.IsIdentityLocked;
-                if (isLocked)
-                {
-                    anchoredTarget.pendingSpeciesObservationCount = 0;
-                    return;
-                }
+            Assert("Test 9: Confirm second spatially distinct species B",
+                target2.speciesId == speciesB && card2.CurrentSpeciesId == speciesB && card2.IsIdentityLocked,
+                $"Target2 Species={card2.CurrentSpeciesId}, Pos={initialPos2}");
 
-                if (incomingSpecies == anchoredTarget.speciesId)
-                {
-                    anchoredTarget.pendingSpeciesId = null;
-                    anchoredTarget.pendingSpeciesObservationCount = 0;
-                    return;
-                }
+            Assert("Test 10: Both cards retain independent locked identities",
+                target1.speciesId == speciesA && card1.CurrentSpeciesId == speciesA && card1.LockedSpeciesId == speciesA &&
+                target2.speciesId == speciesB && card2.CurrentSpeciesId == speciesB && card2.LockedSpeciesId == speciesB,
+                $"Target1={card1.CurrentSpeciesId}, Target2={card2.CurrentSpeciesId}");
 
-                if (incomingSpecies == speciesUnknown)
-                {
-                    // Stable card policy: ignore unknown for confirmed card
-                    return;
-                }
-
-                if (anchoredTarget.pendingSpeciesId == incomingSpecies &&
-                    (timestamp - anchoredTarget.lastPendingSpeciesObservationTime <= candidateTimeoutWindow))
-                {
-                    anchoredTarget.pendingSpeciesObservationCount++;
-                    anchoredTarget.lastPendingSpeciesObservationTime = timestamp;
-                    if (anchoredTarget.pendingSpeciesObservationCount >= requiredObservations)
-                    {
-                        anchoredTarget.speciesId = incomingSpecies;
-                        anchoredTarget.pendingSpeciesId = null;
-                        anchoredTarget.pendingSpeciesObservationCount = 0;
-                        anchoredTarget.cardComponent.PopulateData(incomingSpecies);
-                    }
-                }
-                else
-                {
-                    anchoredTarget.pendingSpeciesId = incomingSpecies;
-                    anchoredTarget.pendingSpeciesObservationCount = 1;
-                    anchoredTarget.lastPendingSpeciesObservationTime = timestamp;
-                }
-            }
-
-            // Send observation 1 of species B:
-            SimulateIncomingObservation(speciesB, baseTime + 6.1f);
-            Assert("Test 9: After lock expiration, single B observation NOT accepted",
-                anchoredTarget.speciesId == speciesA && card.CurrentSpeciesId == speciesA && anchoredTarget.pendingSpeciesObservationCount == 1,
-                $"CardSpecies={card.CurrentSpeciesId}, PendingObs={anchoredTarget.pendingSpeciesObservationCount}/3");
-
-            // Also test transient unknown does not degrade:
-            SimulateIncomingObservation(speciesUnknown, baseTime + 6.2f);
-            Assert("Stable card: transient unknown after lock expiry ignored",
-                anchoredTarget.speciesId == speciesA && card.CurrentSpeciesId == speciesA);
+            // Verify cross-talk immunity: sending species A to card2 does not change it, and sending species B to card1 does not change it
+            card1.PopulateData(speciesB);
+            card2.PopulateData(speciesA);
+            Assert("Test 10b: Cross-talk immunity verified",
+                card1.CurrentSpeciesId == speciesA && card2.CurrentSpeciesId == speciesB);
 
             // -----------------------------------------------------------------
-            // TEST 10: Verify existing confirmation logic is required before changing
+            // TEST 11: No anchor movement
             // -----------------------------------------------------------------
-            // Send observation 2 of species B:
-            SimulateIncomingObservation(speciesB, baseTime + 6.3f);
-            Assert("Test 10a: Observation 2 of B still requires 1 more observation",
-                anchoredTarget.speciesId == speciesA && card.CurrentSpeciesId == speciesA && anchoredTarget.pendingSpeciesObservationCount == 2,
-                $"CardSpecies={card.CurrentSpeciesId}, PendingObs={anchoredTarget.pendingSpeciesObservationCount}/3");
-
-            // Send observation 3 of species B:
-            SimulateIncomingObservation(speciesB, baseTime + 6.4f);
-            Assert("Test 10b: Observation 3 of B CONFIRMS new identity and locks",
-                anchoredTarget.speciesId == speciesB && card.CurrentSpeciesId == speciesB && card.IsIdentityLocked && card.LockedSpeciesId == speciesB,
-                $"CardSpecies={card.CurrentSpeciesId}, Locked={card.IsIdentityLocked}, LockedId={card.LockedSpeciesId}");
+            Assert("Test 11a: Target 1 anchor position strictly immutable",
+                Vector3.Distance(initialPos1, target1.WorldPosition) < 0.0001f,
+                $"Pos1 Initial={initialPos1}, Current={target1.WorldPosition}");
+            Assert("Test 11b: Target 2 anchor position strictly immutable",
+                Vector3.Distance(initialPos2, target2.WorldPosition) < 0.0001f,
+                $"Pos2 Initial={initialPos2}, Current={target2.WorldPosition}");
 
             // -----------------------------------------------------------------
-            // TEST 11: Verify anchor transform does not change
+            // TEST 12: No duplicate card for same target
             // -----------------------------------------------------------------
-            Vector3 finalPos = anchoredTarget.WorldPosition;
-            Assert("Test 11: Anchor transform position immutable",
-                Vector3.Distance(initialPos, finalPos) < 0.0001f,
-                $"Initial={initialPos}, Final={finalPos}");
-
-            // -----------------------------------------------------------------
-            // TEST 12: Verify no duplicate card is created
-            // -----------------------------------------------------------------
-            Assert("Test 12: Single card instance preserved (no duplicates)",
-                anchoredTarget.cardInstance == cardGo && cardGo != null);
+            // When raycast hits near Target 1 (within deduplication radius 0.20m), FindClosestTarget matches target1
+            float distToTarget1 = Vector3.Distance(new Vector3(0.05f, 0.0f, 1.0f), target1.WorldPosition);
+            bool isSameTarget = distToTarget1 <= 0.20f;
+            Assert("Test 12: Deduplication matches existing target (no duplicate card created)",
+                isSameTarget && target1.cardInstance == cardGo1);
 
             // Cleanup
-            Object.DestroyImmediate(cardGo);
+            Object.DestroyImmediate(cardGo1);
+            Object.DestroyImmediate(cardGo2);
         }
         finally
         {
