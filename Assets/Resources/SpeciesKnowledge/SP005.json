@@ -1,0 +1,24 @@
+{
+  "species_id": "SP005",
+  "scientific_name": "Monstera deliciosa",
+  "common_name": "Swiss Cheese Plant",
+  "family": "Araceae",
+  "native_region": "Tropical forests of southern Mexico, south to Panama",
+  "ecological_importance": "Provides habitat for tree frogs and insects.",
+  "conservation": {
+    "status": "Not Evaluated",
+    "threats": ["Habitat loss", "Overcollection"],
+    "actions": ["Protect native habitats", "Sustainable cultivation"]
+  },
+  "botanical_chapters": [
+    { "title": "Chapter 1: Morphology", "content": "Large, leathery, glossy, heart-shaped leaves..." },
+    { "title": "Chapter 2: Growth Habit", "content": "Hemiepiphytic vine..." },
+    { "title": "Chapter 3: Aerial Roots", "content": "Used for anchoring..." },
+    { "title": "Chapter 4: Inflorescence", "content": "Spadix enclosed by a spathe..." },
+    { "title": "Chapter 5: Fruit", "content": "Edible when fully ripe..." },
+    { "title": "Chapter 6: Toxicity", "content": "Calcium oxalate crystals in unripe parts..." },
+    { "title": "Chapter 7: Cultivation", "content": "Popular houseplant..." },
+    { "title": "Chapter 8: Light Requirements", "content": "Bright, indirect light..." },
+    { "title": "Chapter 9: Watering", "content": "Allow soil to dry slightly between waterings..." }
+  ]
+}
